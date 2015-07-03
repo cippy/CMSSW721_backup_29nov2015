@@ -256,6 +256,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
    selection lep2etaC;
    selection genLepC;  
    selection metNoLep200C;
+   selection HLTlepC;
    // the following are only for electrons
    selection lep2tightIdIso04C;
 
@@ -274,11 +275,11 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
 
    Int_t firstIndexGen = 0;
    Int_t secondIndexGen = 1;
-   Int_t recoLepFound = 0;
-   Int_t genLepFound = 0;
+   Int_t recoLepFound_flag = 0;
+   Int_t genLepFound_flag = 0;
    Int_t Z_index = 0; 
 
-   Int_t triggerPassed_flag = 1; // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
+   Int_t HLT_passed_flag = 1; // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
    // it's set to 1 because if the trigger selection is not applied every event must be considered to be a "good" event having passed all preselections
 
    // following 2 variable are used for acceptance and efficiency selection, define below in the loop: if selection is passed they are set to 1, otherwise they are set to 0
@@ -328,6 +329,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
      genLepC.set("genMuonsC","muons generated");     
      metNoLep200C.set("metNoMu200C","metNoMu > 200");
+     HLTlepC.set("HLTmuonC","HLT for muons");
 
    } else if (fabs(LEP_PDG_ID) == 11) {   // if we have Z -> ee do different stuff...
 
@@ -356,6 +358,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
      genLepC.set("genElectronsC","electrons generated");     
      metNoLep200C.set("metNoEle200C","metNoEle > 200");
+     HLTlepC.set("HLTelectronC","HLT for electrons");
 
      // the following are only for electrons
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
@@ -412,7 +415,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
 
      zlljetsControlSample.append(metNoLep200C.get2ToId());
      zlljetsControlSample.append(oppChargeLeptonsC.get2ToId()); // skip loose requirement because I wil ask the tight one for both
-     zlljetsControlSample.append(twoLeptonsC.get2ToId());
+     //zlljetsControlSample.append(twoLeptonsC.get2ToId());
      zlljetsControlSample.append(maskTightTag);
      zlljetsControlSample.append(invMassC.get2ToId());
        
@@ -582,7 +585,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if (jentry%50000 == 0) cout << "jentry = " << jentry << endl;
+     //if (jentry%100000 == 0) cout << "jentry = " << jentry << endl;
 
      UInt_t eventMask = 0; 
      Double_t newwgt = weight * LUMI;
@@ -593,7 +596,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      nLep10V = *ptr_nLep10V;
 
      // Z_PDGID = 23   
-     genLepFound = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
+     genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
      l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
      l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
      Zgen = l1gen + l2gen;
@@ -601,7 +604,7 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      Double_t ZtoLLGenPt = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
      Z_index = GenPart_motherIndex[firstIndexGen];   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);  
      
-     recoLepFound = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);       
+     recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);       
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
      Zreco = l1reco + l2reco;
@@ -609,26 +612,25 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
 
      if (fabs(LEP_PDG_ID) == 13) { 
 
-       if ( (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) && ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) && (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) )  acceptanceSelectionDef = 1;
+       if ( genLepFound_flag && (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) && ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) && (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) )  acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if ( (nLepLoose == 2) && (LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (fabs(LepGood_pdgId[firstIndex]) == LEP_PDG_ID) ) efficiencySelectionDef = 1;
+       if (recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04)) efficiencySelectionDef = 1;
        else efficiencySelectionDef = 0;
 
-       metNoLepPt = (Double_t)*ptr_metNoLepPt;        // casting might not be necessary: promoting float to double should be ok, but anyway...
-       metNoLepEta = (Double_t)*ptr_metNoLepEta; 
-       metNoLepPhi = (Double_t)*ptr_metNoLepPhi; 
+       metNoLepPt = *ptr_metNoLepPt;        // casting might not be necessary: promoting float to double should be ok
+       metNoLepEta = *ptr_metNoLepEta; 
+       metNoLepPhi = *ptr_metNoLepPhi; 
        metNoLepTV3.SetPtEtaPhi(metNoLepPt,metNoLepEta,metNoLepPhi);   // will use this 3D vector below
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
-
+ 
        if ( HLT_FLAG ) {
 
-	 if ( (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
-	      ( (LepGood_pdgId[firstIndex] * LepGood_pdgId[secondIndex] ) == NEG_LEP_PDG_ID2) && 
+	 if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
 	      (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
-	      (LepGood_pt[secondIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) triggerPassed_flag = 1; 
-	 else triggerPassed_flag = 0;
+	      (LepGood_pt[secondIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
+	 else HLT_passed_flag = 0;
 
        }  // end of   if ( HLT_FLAG )
 
@@ -647,65 +649,16 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
        metNoLepEta = metNoLepTV3.Eta();
        metNoLepPhi = metNoLepTV3.Phi();
 
-       if ( (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) &&
+       if ( genLepFound_flag && (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) &&
        	    ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) &&
        	    (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) ) acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if ( (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) &&
-       	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) &&
-       	    ((LepGood_pdgId[firstIndex] * LepGood_pdgId[secondIndex]) == NEG_LEP_PDG_ID2) ) efficiencySelectionDef = 1;
+       if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) &&
+       	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) ) efficiencySelectionDef = 1;
        else efficiencySelectionDef = 0;
 
      }
-
-     if (recoLepFound && metNoLepPt > METNOLEP_START && (fabs(LEP_PDG_ID) == 13 || (triggerPassed_flag && fabs(LEP_PDG_ID) == 11)) ) {  
-       // following is done if two OS leptons are found (otherwise there would be no Z)
-       // moreover, if we have electron, trigger selection must be passed 
-       //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
-		
-       //metNoLepTV3.SetPtEtaPhi((Double_t)metNoLepPt,(Double_t)metNoLepEta,(Double_t)metNoLepPhi);  // already initialized above
-       Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
-
-       Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);
-       Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
-
-       if (ZtoLLRecoPt > ZptBinEdges[0]) {   //this corresponds to trigger efficiency plateaux (actually it would be mumet, but mumet recoils against wzpt so their pt should be of the same order of magnitude). For electrons the trigger doesn't require elemet > METNOLEP_START, but we ask it offline and thus it was added next to recoLepFound in the if condition above
-
-	 Int_t nvtxBin = nVert - FIRST_NVTX;
-	 Int_t lastnvtx = NVTXS + FIRST_NVTX;
-
-	 if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
-
-	   H_uPerp_VS_Nvtx[nvtxBin]->Fill(u_perp,newwgt);
-
-	   if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
-
-	     H_uPar_VS_Nvtx[nvtxBin]->Fill(u_par - ZtoLLRecoPt,newwgt);
-	 
-	   }       
-    
-	 }
-
-       }            // end of if (ZtoLLRecoPt > 250)
-	
-       /**************************************************/
-       // computing met responses
-       /**************************************************/
-
-       // first of all I make sure that wzpt is in the appropriate range
-       if ((ZtoLLRecoPt > ZptBinEdges[0]) && (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse])) {
-
-	 Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
-	 //cout<<"bin = "<<bin<<endl;
-	 HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
-	 if (ZtoLLRecoPt > 0) H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
-	 H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
-	 H_uPar_VS_ZpT[respBin]->Fill(u_par - ZtoLLRecoPt,newwgt);
-
-       }
-
-     }		// end of if (recoLepFound)
 
      // beginning of eventMask building
 
@@ -716,39 +669,48 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
      //eventMask += jjdphiC.addToMask( (nJet30a == 1 && Jet_eta[0] < 2.5) || (nJet30a == 2 && abs(dphijj) < J1J2DPHI));                   
      //in Emanuele's tree we have vectors: [0] is the first jet, [1] is the second and so on (ordered in pt)
      //eventMask += jet1etaC.addToMask(fabs(Jet_eta[0]) < J1ETA);
-     
-     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));
-     eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
-     eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
 
-     eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
-     eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
-     if (TAU_VETO_FLAG) eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
-     for (Int_t i = 0; i <  metCut.size(); i++) {
-       eventMask += metNoLepC[i].addToMask(metNoLepPt > metCut[i]);
-     }
-     eventMask += metNoLep200C.addToMask(metNoLepPt > METNOLEP_START);
-     eventMask += oppChargeLeptonsC.addToMask( (LepGood_pdgId[firstIndex] * LepGood_pdgId[secondIndex]) == NEG_LEP_PDG_ID2);
-     eventMask += twoLeptonsC.addToMask((fabs(LepGood_pdgId[firstIndex]) == LEP_PDG_ID) && (fabs(LepGood_pdgId[secondIndex]) == LEP_PDG_ID));
-     eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
-     eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT) && (fabs(LepGood_pdgId[firstIndex]) == LEP_PDG_ID)); 
-     eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) && (fabs(LepGood_pdgId[firstIndex]) == LEP_PDG_ID) );
-     eventMask += lep2ptC.addToMask((LepGood_pt[secondIndex] > LEP2PT) && (fabs(LepGood_pdgId[secondIndex]) == LEP_PDG_ID));
-     eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) && (fabs(LepGood_pdgId[secondIndex]) == LEP_PDG_ID));
-     eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));
-     eventMask += genLepC.addToMask( genLepFound );
+     eventMask += genLepC.addToMask( genLepFound_flag );
      eventMask += genTausC.addToMask( myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23) );  // tau pdg id = 15, Z pdg id = 23 
      eventMask += acceptanceC.addToMask( acceptanceSelectionDef );
      eventMask += efficiencyC.addToMask( efficiencySelectionDef );
-     eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (fabs(LepGood_pdgId[firstIndex]) == LEP_PDG_ID));
-     if (fabs(LEP_PDG_ID) == 11) { 
-       eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) && (fabs(LepGood_pdgId[secondIndex]) == LEP_PDG_ID));
-       //if ((jentry%50000) == 0) cout << "jentry = " <<jentry<<endl;
+
+     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));
+     eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
+     eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
+     eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
+     eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
+     eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
+     eventMask += metNoLep200C.addToMask(metNoLepPt > METNOLEP_START);
+     eventMask += HLTlepC.addToMask(HLT_passed_flag);     
+
+     for (Int_t i = 0; i <  metCut.size(); i++) {
+       eventMask += metNoLepC[i].addToMask(metNoLepPt > metCut[i]);
+     }
+     
+     // the following make sense only if recoLepFound_flag == 1 (i.e. flag is true), which means that fabs(LepGood_pdgId[firstIndex/secondIndex]) == LEP_PDG_ID) is 
+     // true
+     // also, 2 OS/SF leptons are present
+     if (recoLepFound_flag) {
+
+       eventMask += oppChargeLeptonsC.addToMask( 1);
+       eventMask += twoLeptonsC.addToMask(1);
+       eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
+       eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT)); 
+       eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) );
+       eventMask += lep2ptC.addToMask((LepGood_pt[secondIndex] > LEP2PT) );
+       eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) );
+       eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));     
+       eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
+       if (fabs(LEP_PDG_ID) == 11) { 
+	 eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
+       }
+
      }
 
      // end of eventMask building
 
-     if ((fabs(LEP_PDG_ID) == 13 || (triggerPassed_flag && fabs(LEP_PDG_ID) == 11 ))) {
+     if ((fabs(LEP_PDG_ID) == 13 || (HLT_passed_flag && fabs(LEP_PDG_ID) == 11 ))) {
 
        // this part, for electrons, is done only if trigger is passed
        // nTotalWeightedEvents counts the number of events passing trigger selection, if any
@@ -766,10 +728,112 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
        }
 
        if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {
+
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
 
-	 if (recoLepFound && genLepFound) {
+	 //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+	 // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+	 // now we require a DeltaR cut between them to assess that lreco comes from lgen
+	   
+	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+
+	 if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+
+	 } else if (LepGood_pdgId[firstIndex] == GenPart_pdgId[secondIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[firstIndexGen]) {
+	    
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+
+	 }
+
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
+	     
+	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
+	   HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
+	   if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+
+	 }	 
+
+       }
+
+       if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
+	 // this histogram holds the final yields in bins of MET
+	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+       }
+
+       if (recoLepFound_flag && metNoLepPt > METNOLEP_START ) {   // trigger is already included above, if any
+	 
+	 // following is done if two OS leptons are found (otherwise there would be no Z)
+	 // moreover, if we have electron, trigger selection must be passed 
+	 //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
+		
+	 //metNoLepTV3.SetPtEtaPhi((Double_t)metNoLepPt,(Double_t)metNoLepEta,(Double_t)metNoLepPhi);  // already initialized above
+	 Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
+
+	 Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);
+	 Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
+
+	 if (ZtoLLRecoPt > ZptBinEdges[0]) {   //this corresponds to trigger efficiency plateaux (actually it would be mumet, but mumet recoils against wzpt so their pt should be of the same order of magnitude). For electrons the trigger doesn't require elemet > METNOLEP_START, but we ask it offline and thus it was added next to recoLepFound_flag in the if condition above
+
+	   Int_t nvtxBin = nVert - FIRST_NVTX;
+	   Int_t lastnvtx = NVTXS + FIRST_NVTX;
+
+	   if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
+
+	     H_uPerp_VS_Nvtx[nvtxBin]->Fill(u_perp,newwgt);
+
+	     if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
+
+	       H_uPar_VS_Nvtx[nvtxBin]->Fill(u_par - ZtoLLRecoPt,newwgt);
+	 
+	     }       
+    
+	   }  // end of   if ((nvtxBin >= 0) && (nVert < lastnvtx))
+
+	   /**************************************************/
+	   // computing met responses
+	   /**************************************************/
+
+	   // first of all I make sure that wzpt is in the appropriate range
+	   if ( ZtoLLRecoPt < ZptBinEdges[nBinsForResponse] ) {
+
+	     Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
+	     //cout<<"bin = "<<bin<<endl;
+	     HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
+	     H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
+	     H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
+	     H_uPar_VS_ZpT[respBin]->Fill(u_par - ZtoLLRecoPt,newwgt);
+ 
+	   }
+
+	 }            // end of if (ZtoLLRecoPt > 250)
+
+       }	// end of  if (recoLepFound_flag ...)
+
+     }	   // end of   if ((fabs(LEP_PDG_ID) == 13 || (HLT_passed_flag && fabs(LEP_PDG_ID) == 11 ))) 	
+
+     // now entering analysis in bins of met
+
+     if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
+
+       Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
+       lep_acc_eff[bin]->countEvents(eventMask,newwgt);
+       
+       if ((fabs(LEP_PDG_ID) == 13 || (HLT_passed_flag && fabs(LEP_PDG_ID) == 11 ))) {
+
+	 if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
+	   // this histogram holds the invariant mass distribution (one for each met bin)
+	   HinvMass[bin]->Fill(mZ1,newwgt);   
+	 }
+
+	 if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) { 
+ 
+	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
 
 	   //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
 	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
@@ -792,49 +856,19 @@ void zlljets_Axe_noSkim::loop(const char* configFileName)
 
 	   if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
 	     
-	     HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
-	     HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
-	     if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	     HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
+	     HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
+	     if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 
 	   }
 
-	 }
-
-       }
-
-       if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-	 // this histogram holds the final yields in bins of MET
-	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
-       }
-
-     }		
-
-     // now entering analysis in bins of met
-
-     if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
-
-       Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
-       lep_acc_eff[bin]->countEvents(eventMask,newwgt);
-       
-       if ((fabs(LEP_PDG_ID) == 13 || (triggerPassed_flag && fabs(LEP_PDG_ID) == 11 ))) {
-
-	 if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
-	   // this histogram holds the invariant mass distribution (one for each met bin)
-	   HinvMass[bin]->Fill(mZ1,newwgt);   
-	 }
-
-	 if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {  
-	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
-	   HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
-	   HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
-	   if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 	 }
 
 	 if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
 	   HzlljetsInvMassMetBinGenTau[bin]->Fill(mZ1,newwgt);   
 	 }
 
-       }                    // end of   if ((fabs(LEP_PDG_ID) == 13 || (triggerPassed_flag && fabs(LEP_PDG_ID) == 11 )))  
+       }                    // end of   if ((fabs(LEP_PDG_ID) == 13 || (HLT_passed_flag && fabs(LEP_PDG_ID) == 11 )))  
 
      }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
 
