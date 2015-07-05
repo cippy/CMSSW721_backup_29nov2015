@@ -248,7 +248,8 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // the following are only for electrons
    selection lep2tightIdIso04C;
 
-   TVector3 met, ele, eleVectorSum;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
+   //TVector3 met, ele, eleVectorSum;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
+   TVector2 met, ele, eleVectorSum; 
 
    // following indices refer to the leading pair of OS/SF in the list of LepGood. They are initialized with 0 and 1 by default, but can be set with function
    // myGetPairIndexInArray (see functionsForAnalysis.cc for reference). 
@@ -349,18 +350,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      lep_acc_eff[i]->append(efficiencyC.get2ToId());
    }
 
-   mask *lep_acc_eff_ht[nMetBins][nHTbins];
-   for ( Int_t i = 0; i < nMetBins; i++) {
-     for (Int_t j = 0; j < nHTbins; j++ ) {
-       lep_acc_eff_ht[i][j] = new mask;
-       lep_acc_eff_ht[i][j]->setName(Form("%s_acc_eff:  %3.0lf < met < %3.0lf;  %3.0lf < ht < %3.0lf",FLAVOUR,metBinEdges[i], metBinEdges[i+1], HTbinEdges[j], HTbinEdges[j+1]));
-       lep_acc_eff_ht[i][j]->append(genLepC.get2ToId());
-       lep_acc_eff_ht[i][j]->append(maskMonoJetSelection);
-       lep_acc_eff_ht[i][j]->append(acceptanceC.get2ToId());
-       lep_acc_eff_ht[i][j]->append(efficiencyC.get2ToId());
-     }
-   }
-
    cout << "Opening file " <<ROOT_FNAME<< endl;
 
    TFile *rootFile = new TFile(ROOT_FNAME,"RECREATE");
@@ -378,14 +367,25 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    TH1::StatOverflows();                 //enable use of underflows and overflows for statistics computation 
    TVirtualFitter::SetDefaultFitter("Minuit");
 
+   TH1D* HmonojetW = new TH1D("HmonojetW","",nMetBins,metBinEdges);
+   TH1D* HaccW = new TH1D("HaccW","",nMetBins,metBinEdges);
+   TH1D* HeffW = new TH1D("HeffW","",nMetBins,metBinEdges);
+   TH1D* HacceffW = new TH1D("HacceffW","",nMetBins,metBinEdges);
+
    TH1D* Hacc = new TH1D("Hacc","",nMetBins,metBinEdges);
    TH1D* Heff = new TH1D("Heff","",nMetBins,metBinEdges);
    TH1D* Hacceff = new TH1D("Hacceff","",nMetBins,metBinEdges);
 
+   TH1D* HaccDivNnoW = new TH1D("HaccDivNnoW","",nMetBins,metBinEdges);
+   TH1D* HeffDivNnoW = new TH1D("HeffDivNnoW","",nMetBins,metBinEdges);
+   TH1D* HacceffDivNnoW = new TH1D("HacceffDivNnoW","",nMetBins,metBinEdges);
+
+   TH1D *HmonoJetSel_noW_HTbin[nHTbins];;
    TH1D *Hacc_noW_HTbin[nHTbins];
    TH1D *Heff_noW_HTbin[nHTbins];
    TH1D *Hacceff_noW_HTbin[nHTbins];
    for (Int_t i = 0; i < nHTbins; i++) {
+     HmonoJetSel_noW_HTbin[i] = new TH1D(Form("HmonoJetSel_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
      Hacc_noW_HTbin[i] = new TH1D(Form("Hacc_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
      Heff_noW_HTbin[i] = new TH1D(Form("Heff_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
      Hacceff_noW_HTbin[i] = new TH1D(Form("Hacceff_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
@@ -410,7 +410,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if ((jentry % 100000) == 0) cout << "jentry = " << jentry << endl;
+     if ((jentry % 250000) == 0) cout << "jentry = " << jentry << endl;
 
      UInt_t eventMask = 0; 
      Double_t newwgt = weight * LUMI;
@@ -421,7 +421,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        currentWeight = weight;
        htbin = 0;
      }
-     if (currentWeight != weight) {  // when weight changes, it means we are entering new HT bin ( weights are the same within the same HT bin
+     if (currentWeight != weight) {  // when weight changes, it means we are entering new HT bin ( weights are the same within the same HT bin, and are ordered)
        currentWeight = weight;
        htbin++;
      }
@@ -514,11 +514,31 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      // end of eventMask building
      // now entering analysis in bins of met
 
+     if ( (eventMask & maskMonoJetSelection) == maskMonoJetSelection ) {
+
+       HmonoJetSel_noW_HTbin[htbin]->Fill(metNoLepPt);
+       HmonojetW->Fill(metNoLepPt,newwgt);
+
+       if (acceptanceSelectionDef) {
+
+	 Hacc_noW_HTbin[htbin]->Fill(metNoLepPt);
+	 HaccW->Fill(metNoLepPt,newwgt);
+
+	 if (efficiencySelectionDef) {
+
+	   Heff_noW_HTbin[htbin]->Fill(metNoLepPt);
+	   HeffW->Fill(metNoLepPt,newwgt);
+
+	 }
+
+       }
+
+     }
+
      if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
 
        Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
        lep_acc_eff[bin]->countEvents(eventMask,newwgt);       
-       lep_acc_eff_ht[bin][htbin]->countEvents(eventMask);
 	 
      }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
        
@@ -537,6 +557,23 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      
    }
 
+   TH1D *HmonoJetSelSumHTbin = new TH1D("HmonoJetSelSumHTbin","",nMetBins,metBinEdges);
+   TH1D *HaccSumHTbin = new TH1D("HaccSumHTbin","",nMetBins,metBinEdges);
+   TH1D *HeffSumHTbin = new TH1D("HeffSumHTbin","",nMetBins,metBinEdges);
+   TH1D *HacceffSumHTbin = new TH1D("HacceffSumHTbin","",nMetBins,metBinEdges);
+
+   for ( Int_t j = 0; j < nHTbins; j++ ) {
+
+     HmonoJetSelSumHTbin->Add(HmonoJetSel_noW_HTbin[j]);   // THIS SUMMATION IS NOT CORRECT AND LEADS TO UNCORRECT RESULTS. 
+     HaccSumHTbin->Add(Hacc_noW_HTbin[j]);
+     HeffSumHTbin->Add(Heff_noW_HTbin[j]);
+
+   }
+
+   Int_t nEvtMonoJetSelPass = HmonoJetSelSumHTbin->GetEffectiveEntries();
+   Int_t nEvtAccSelPass = HaccSumHTbin->GetEffectiveEntries();
+   Int_t nEvtEffSelPass = HeffSumHTbin->GetEffectiveEntries();
+
    // using [0] element to find step, all elements are equivalent for this purpose
    Int_t stepMonojetSelection_In_lepAccEff = lep_acc_eff[0]->whichStepHas(maskMonoJetSelection);
    Int_t stepAcceptance_In_lepAccEff = lep_acc_eff[0]->whichStepHas(acceptanceC.get2ToId());
@@ -544,7 +581,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // cout<<"step: MJ     acc     eff"<<endl;
    // cout<<stepMonojetSelection_In_lepAccEff<<stepAcceptance_In_lepAccEff<<stepEfficiency_In_lepAccEff<<endl;
    Double_t acc, eff, accStatErr, effStatErr, acceff, acceffStatErr;
-   Double_t acc_ht[nHTbins], eff_ht[nHTbins], accStatErr_ht[nHTbins], effStatErr_ht[nHTbins], acceff_ht[nHTbins], acceffStatErr_ht[nHTbins];
 
    mySpaces(cout,2);
    mySpaces(myfile,2);
@@ -567,19 +603,36 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      acc = lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff];
      eff = lep_acc_eff[i]->nEvents[stepEfficiency_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff];
-     accStatErr = sqrt(acc * (1 - acc) / lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff]);
-     effStatErr = sqrt(eff * (1 - eff) / lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff]);
      Hacc->SetBinContent(i+1,acc);
-     Hacc->SetBinError(i+1,accStatErr);
      Heff->SetBinContent(i+1,eff);
+     HaccDivNnoW->SetBinContent(i+1,acc);
+     HeffDivNnoW->SetBinContent(i+1,eff);
+     accStatErr = sqrt(acc * (1 - acc) / lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff]);
+     Hacc->SetBinError(i+1,accStatErr);
+     accStatErr = sqrt(acc * (1 - acc) / nEvtMonoJetSelPass);
+     HaccDivNnoW->SetBinError(i+1,accStatErr);
+     effStatErr = sqrt(eff * (1 - eff) / lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff]);
      Heff->SetBinError(i+1,effStatErr);
+     effStatErr = sqrt(eff * (1 - eff) / nEvtAccSelPass);
+     HeffDivNnoW->SetBinError(i+1,effStatErr);
 
      cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acc<<" "<<accStatErr<<" "<<eff<<" "<<effStatErr<<endl;
      myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acc<<" "<<accStatErr<<" "<<eff<<" "<<effStatErr<<endl;
 
    }
 
+   HacceffW->Divide(HeffW,HmonojetW,1,1,"B");
+   HeffW->Divide(HeffW,HaccW,1,1,"B");
+   HaccW->Divide(HaccW,HmonojetW,1,1,"B");
+
    for (Int_t j = 0; j < nHTbins;j++ ) {
+
+     mySpaces(cout,2);
+     mySpaces(myfile,2);
+
+     Hacceff_noW_HTbin[j]->Divide(Heff_noW_HTbin[j],HmonoJetSel_noW_HTbin[j],1,1,"B");  // use binomial statistics
+     Heff_noW_HTbin[j]->Divide(Heff_noW_HTbin[j],Hacc_noW_HTbin[j],1,1,"B");
+     Hacc_noW_HTbin[j]->Divide(Hacc_noW_HTbin[j],HmonoJetSel_noW_HTbin[j],1,1,"B");
 
      cout << "Printing acceptance and efficiency: HT in [" << HTbinEdges[j] << "," << HTbinEdges[j+1] << "]" << endl;
      cout << "MET [GeV]     acc     acc_unc     eff     eff_unc" <<endl;
@@ -588,21 +641,21 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      for  (Int_t i = 0; i < nMetBins; i++) {
 
-       acc_ht[j] = lep_acc_eff_ht[i][j]->nEventsNoW[stepAcceptance_In_lepAccEff]/lep_acc_eff_ht[i][j]->nEventsNoW[stepMonojetSelection_In_lepAccEff];
-       eff_ht[j] = lep_acc_eff_ht[i][j]->nEventsNoW[stepEfficiency_In_lepAccEff]/lep_acc_eff_ht[i][j]->nEventsNoW[stepAcceptance_In_lepAccEff];
-       accStatErr_ht[j] = sqrt(acc_ht[j] * (1 - acc_ht[j]) / lep_acc_eff_ht[i][j]->nEventsNoW[stepMonojetSelection_In_lepAccEff]);
-       effStatErr_ht[j] = sqrt(eff_ht[j] * (1 - eff_ht[j]) / lep_acc_eff_ht[i][j]->nEventsNoW[stepAcceptance_In_lepAccEff]);
-       Hacc_noW_HTbin[j]->SetBinContent(i+1,acc_ht[j]);
-       Hacc_noW_HTbin[j]->SetBinError(i+1,accStatErr_ht[j]);
-       Heff_noW_HTbin[j]->SetBinContent(i+1,eff_ht[j]);
-       Heff_noW_HTbin[j]->SetBinError(i+1,effStatErr_ht[j]);
-
-       cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acc_ht[j]<<" "<<accStatErr_ht[j]<<" "<<eff_ht[j]<<" "<<effStatErr_ht[j]<<endl;
-       myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acc_ht[j]<<" "<<accStatErr_ht[j]<<" "<<eff_ht[j]<<" "<<effStatErr_ht[j]<<endl;
+       cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" ";
+       cout<< Hacc_noW_HTbin[j]->GetBinContent(i+1) << " "<< Hacc_noW_HTbin[j]->GetBinError(i+1) << " ";
+       cout<< Heff_noW_HTbin[j]->GetBinContent(i+1) << " "<< Heff_noW_HTbin[j]->GetBinError(i+1) << endl;
+       myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" ";
+       myfile<< Hacc_noW_HTbin[j]->GetBinContent(i+1) << " "<< Hacc_noW_HTbin[j]->GetBinError(i+1) << " ";
+       myfile<< Heff_noW_HTbin[j]->GetBinContent(i+1) << " "<< Heff_noW_HTbin[j]->GetBinError(i+1) << endl;
 
      }
 
    }
+
+   HacceffSumHTbin->Divide(HeffSumHTbin,HmonoJetSelSumHTbin,1,1,"B"); 
+   HeffSumHTbin->Divide(HeffSumHTbin,HaccSumHTbin,1,1,"B");
+   HaccSumHTbin->Divide(HaccSumHTbin,HmonoJetSelSumHTbin,1,1,"B");
+
 
    mySpaces(cout,2);
    mySpaces(myfile,2);
@@ -614,21 +667,25 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      // do not merge with previous loop: I want to print them after the previous loop because I might copy and paste this output to make acc * eff table
      
      acceff = lep_acc_eff[i]->nEvents[stepEfficiency_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff];
-     acceffStatErr = sqrt(acceff * (1 - acceff) / lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff]);
      Hacceff->SetBinContent(i+1,acceff);
+     HacceffDivNnoW->SetBinContent(i+1,acceff);
+     acceffStatErr = sqrt(acceff * (1 - acceff) / lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff]);
      Hacceff->SetBinError(i+1,acceffStatErr);
+     acceffStatErr = sqrt(acceff * (1 - acceff) / nEvtMonoJetSelPass);
+     HacceffDivNnoW->SetBinError(i+1,acceffStatErr);
 
      cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acceff<<" "<<acceffStatErr<<endl;
      myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acceff<<" "<<acceffStatErr<<endl;
 
    }
 
-   mySpaces(cout,2);
-   mySpaces(myfile,2);
 
    for (Int_t j = 0; j < nHTbins;j++ ) {
      // do not merge with previous loop: I want to print them after the previous loop because I might copy and paste this output to make acc * eff table
   
+     mySpaces(cout,2);
+     mySpaces(myfile,2);
+   
      cout << "Printing acceptance * efficiency: HT in [" << HTbinEdges[j] << "," << HTbinEdges[j+1] << "]" << endl;
      cout << "MET [GeV]     acc*eff     acc*eff_unc" <<endl;
      myfile << "HT in [" << HTbinEdges[j] << "," << HTbinEdges[j+1] << "]" << endl;
@@ -636,17 +693,16 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      for (Int_t i = 0; i < nMetBins; i++) {
 
-       acceff_ht[j] = lep_acc_eff_ht[i][j]->nEventsNoW[stepEfficiency_In_lepAccEff]/lep_acc_eff_ht[i][j]->nEventsNoW[stepMonojetSelection_In_lepAccEff];
-       acceffStatErr_ht[j] = sqrt(acceff * (1 - acceff) / lep_acc_eff_ht[i][j]->nEventsNoW[stepMonojetSelection_In_lepAccEff]);
-       Hacceff_noW_HTbin[j]->SetBinContent(i+1,acceff_ht[j]);
-       Hacceff_noW_HTbin[j]->SetBinError(i+1,acceffStatErr_ht[j]);
-
-       cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acceff_ht[j]<<" "<<acceffStatErr_ht[j]<<endl;
-       myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" "<<acceff_ht[j]<<" "<<acceffStatErr_ht[j]<<endl;
+       cout<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" ";
+       cout<< Hacceff_noW_HTbin[j]->GetBinContent(i+1) << " "<< Hacceff_noW_HTbin[j]->GetBinError(i+1) << endl;
+       myfile<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" ";
+       myfile<< Hacceff_noW_HTbin[j]->GetBinContent(i+1) << " "<< Hacceff_noW_HTbin[j]->GetBinError(i+1) << endl;
 
      } 
 
    }
+
+   myfile.close();
 
    TEfficiency *Acceptance = new TEfficiency(*HevtPassAccSel,*HevtPassMonoJetSel);
    TEfficiency *Efficiency = new TEfficiency(*HevtPassEffSel,*HevtPassAccSel);
