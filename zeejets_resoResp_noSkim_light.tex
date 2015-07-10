@@ -1,0 +1,104 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian,english]{babel}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{sidecap}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{subfig}
+
+\begin{document}
+
+\begin{table}
+\caption{\emph{Entries after each selection step, normalised to 5.00 $fb^{-1}$; n is the number of entries after the i-th selection step; Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\,GeV.}}
+\[
+\begin{array}{rcrrr}
+\toprule
+\ \textbf{step}& \textbf{definition}  & n  &  n_i/n_0 & n_i/n_{i-1}  \\ 
+\midrule
+ 0  & \text{all entries} & 1620927 & 1.0000 & 1.0000 \\
+\midrule
+ 1  & & 127149 & 0.0784 & 0.0784 \\
+& \text{electrons generated} & & & \\
+\midrule
+ 2  & & 127149 & 0.0784 & 1.0000 \\
+& \text{HLT for electrons} & & & \\
+\midrule
+ 3  & & 127149 & 0.0784 & 1.0000 \\
+& \text{OS/SF leptons} & & & \\
+\midrule
+ 4  & & 127149 & 0.0784 & 1.0000 \\
+& \text{electrons} & & & \\
+\midrule
+ 5  & & 105193 & 0.0649 & 0.8273 \\
+& \text{leading electron tight} & & & \\
+& \text{ele1pt >  32} & & & \\
+& \text{ele2pt >  20} & & & \\
+& \text{|ele1eta| < 2.4} & & & \\
+& \text{|ele2eta| < 2.4} & & & \\
+& \text{trailing electron tight} & & & \\
+\midrule
+ 6  & & 101343 & 0.0625 & 0.9634 \\
+& \text{mass in [ 60,120]} & & & \\
+\midrule
+ 7  & &  32150 & 0.0198 & 0.3172 \\
+& \text{jet1pt >  110} & & & \\
+\midrule
+ 8  & &  24565 & 0.0152 & 0.7641 \\
+& \text{jjdphi < 2.5} & & & \\
+\midrule
+ 9  & &  20537 & 0.0127 & 0.8360 \\
+& \text{nJetClean30 <= 2} & & & \\
+\midrule
+ 10  & &  20530 & 0.0127 & 0.9997 \\
+& \text{muons veto} & & & \\
+\midrule
+ 11  & &  20530 & 0.0127 & 1.0000 \\
+& \text{photons veto} & & & \\
+\midrule
+ 12  & &  20371 & 0.0126 & 0.9922 \\
+& \text{tau veto} & & & \\
+\midrule
+\bottomrule
+\end{array}
+\]
+\end{table}
+
+\begin{table}
+\caption{\emph{Entries after each selection step, normalised to 5.00 $fb^{-1}$; n is the number of entries after the i-th selection step.}}
+\[
+\begin{array}{rcrrr}
+\toprule
+\ \textbf{step}& \textbf{definition}  & n  & $n\_i/n\_0$ & $n\_i/n\_{i-1}$ \\ 
+\midrule
+ 0  & \text{all entries} & 1620927 & 1.0000 & 1.0000 \\
+\midrule
+ 1  & & 127441 & 0.0786 & 0.0786 \\
+& \text{HLT for electrons} & & & \\
+\midrule
+ 2  & & 114812 & 0.0708 & 0.9009 \\
+& \text{OS/SF leptons} & & & \\
+& \text{2 loose electrons} & & & \\
+\midrule
+ 3  & & 100143 & 0.0618 & 0.8722 \\
+& \text{leading electron tight} & & & \\
+& \text{ele1pt >  32} & & & \\
+& \text{ele2pt >  20} & & & \\
+& \text{|ele1eta| < 2.4} & & & \\
+& \text{|ele2eta| < 2.4} & & & \\
+& \text{trailing electron tight} & & & \\
+\midrule
+ 4  & &  96372 & 0.0595 & 0.9623 \\
+& \text{mass in [ 60,120]} & & & \\
+\midrule
+\bottomrule
+\end{array}
+\]
+\end{table}
+
+\end{document}

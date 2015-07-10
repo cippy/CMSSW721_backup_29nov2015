@@ -236,9 +236,9 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    selection invMassC("invMassC",Form("mass in [%3.0lf,%3.0lf]",DILEPMASS_LOW,DILEPMASS_UP));
    // following selections are set differently in the next "if" statements depending on the lepton flavour 
    selection lepLooseVetoC;
-   selection twoLeptonsC;;
-   selection twoLepLooseC;;
-   selection lep1tightIdIso04C;;
+   selection twoLeptonsC;
+   selection twoLepLooseC;
+   selection lep1tightIdIso04C;
    selection twoLepTightC;
    selection lep1ptC;
    selection lep2ptC;
@@ -276,6 +276,9 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    Float_t nLep10V = 0.0;
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
    Double_t ZgenMass = 0.0;
+   Double_t currentWeight = -1.0;
+   Int_t htbin = -1;
+   Int_t Z_index = -1;
 
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
      
@@ -291,14 +294,14 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      ptr_metNoLepPt = &metNoMu_pt;               // for muons  get this variable from the tree 
 
      lepLooseVetoC.set("eLooseVetoC","electrons veto");
-     twoLeptonsC.set("twomuonsC","muons");
-     twoLepLooseC.set("twomuLooseC","2 loose muons");
-     lep1tightIdIso04C.set("mu1tightIdIso04C","leading muon tight","tight ID + relIso04 (as Emanuele)");
-     twoLepTightC.set("twomuTightC","2 tight muons");
-     lep1ptC.set("mu1ptC",Form("mu1pt > %3.0lf",LEP1PT),"leading muon pt");
-     lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
-     lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
-     lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
+     // twoLeptonsC.set("twomuonsC","muons");
+     // twoLepLooseC.set("twomuLooseC","2 loose muons");
+     // lep1tightIdIso04C.set("mu1tightIdIso04C","leading muon tight","tight ID + relIso04 (as Emanuele)");
+     // twoLepTightC.set("twomuTightC","2 tight muons");
+     // lep1ptC.set("mu1ptC",Form("mu1pt > %3.0lf",LEP1PT),"leading muon pt");
+     // lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
+     // lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
+     // lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
      genLepC.set("genMuonsC","muons generated");     
 
    } else if (fabs(LEP_PDG_ID) == 11) {   // if we have Z -> ee do different stuff...
@@ -314,14 +317,14 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      ptr_nLep10V = &nMu10V;                         // veto on muons   
 
      lepLooseVetoC.set("muLooseVetoC","muons veto");
-     twoLeptonsC.set("twoelectronsC","electrons");
-     twoLepLooseC.set("twoeleLooseC","2 loose electrons");
-     lep1tightIdIso04C.set("ele1tightIdIso04C","leading electron tight","tight ID + relIso04 (as Emanuele)");
-     twoLepTightC.set("twoeleTightC","2 tight electrons");
-     lep1ptC.set("ele1ptC",Form("ele1pt > %3.0lf",LEP1PT),"leading electron pt");
-     lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
-     lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
-     lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
+     // twoLeptonsC.set("twoelectronsC","electrons");
+     // twoLepLooseC.set("twoeleLooseC","2 loose electrons");
+     // lep1tightIdIso04C.set("ele1tightIdIso04C","leading electron tight","tight ID + relIso04 (as Emanuele)");
+     // twoLepTightC.set("twoeleTightC","2 tight electrons");
+     // lep1ptC.set("ele1ptC",Form("ele1pt > %3.0lf",LEP1PT),"leading electron pt");
+     // lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
+     // lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
+     // lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
      genLepC.set("genElectronsC","electrons generated");     
 
      // the following are only for electrons
@@ -384,6 +387,15 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    TH1D *Hacc_noW_HTbin[nHTbins];
    TH1D *Heff_noW_HTbin[nHTbins];
    TH1D *Hacceff_noW_HTbin[nHTbins];
+
+   TEfficiency *TE_EffFillW = new TEfficiency("TE_EffFillW","",nMetBins,metBinEdges);
+   TEfficiency *TE_AccFillW = new TEfficiency("TE_AccFillW","",nMetBins,metBinEdges);
+   TEfficiency *TE_AccEffFillW = new TEfficiency("TE_AccEffFillW","",nMetBins,metBinEdges);
+
+   TE_EffFillW->SetUseWeightedEvents();
+   TE_AccFillW->SetUseWeightedEvents();
+   TE_AccEffFillW->SetUseWeightedEvents();
+
    for (Int_t i = 0; i < nHTbins; i++) {
      HmonoJetSel_noW_HTbin[i] = new TH1D(Form("HmonoJetSel_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
      Hacc_noW_HTbin[i] = new TH1D(Form("Hacc_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
@@ -410,13 +422,11 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if ((jentry % 250000) == 0) cout << "jentry = " << jentry << endl;
+     if ((jentry % 500000) == 0) cout << "jentry = " << jentry << endl;
 
      UInt_t eventMask = 0; 
      Double_t newwgt = weight * LUMI;
 
-     Double_t currentWeight;
-     Int_t htbin;
      if (jentry == 0) {
        currentWeight = weight;
        htbin = 0;
@@ -432,7 +442,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      nLep10V = *ptr_nLep10V;
 
      // Z_PDGID = 23   
-     Int_t Z_index;
      genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
 
      if (genLepFound_flag) {
@@ -455,24 +464,29 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
 
-       met.SetPtEtaPhi(met_pt,met_eta,met_phi);
+       //met.SetPtEtaPhi(met_pt,met_eta,met_phi);
+       met.SetMagPhi(met_pt,met_phi);
 
        for (Int_t i = 0; i < nLepGood; i++) {
 	 if (fabs(LepGood_pdgId[i]) == LEP_PDG_ID) {
-	   ele.SetPtEtaPhi(LepGood_pt[i],LepGood_eta[i],LepGood_phi[i]);
+	   //ele.SetPtEtaPhi(LepGood_pt[i],LepGood_eta[i],LepGood_phi[i]);
+	   ele.SetMagPhi(LepGood_pt[i],LepGood_phi[i]);
 	   met += ele;
 	 }
        }
 
-       // metNoLep vector created summing real met vector and vector sum of all electrons
-       metNoLepPt = met.Pt();  // for electrons we define components by hand, for muons we used the variable in the tree to form the vector
+       // metNoLep vector created summing real met vector and vector sum of all electrons, but then I require exactly 2 loose leptons for the efficiency
+       // In principle I should only add the Z: for muons it adds every muon, but then the usual selection for control samples would require exactly 2 muons
+       // while for signal we would veto on muons
+       //metNoLepPt = met.Pt();  // for electrons we define components by hand, for muons we used the variable in the tree to form the vector
+       metNoLepPt = met.Mod();
 
        if ( genLepFound_flag && (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) &&
        	    ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) &&
        	    (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) ) acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) &&
+       if ( recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) &&
        	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) ) efficiencySelectionDef = 1;
        else efficiencySelectionDef = 0;
 
@@ -494,44 +508,50 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      // the following make sense only if recoLepFound_flag == 1 (i.e. flag is true), which means that fabs(LepGood_pdgId[firstIndex/secondIndex]) == LEP_PDG_ID) is 
      // true
      // also, 2 OS/SF leptons are present
-     if (recoLepFound_flag) {
+     // if (recoLepFound_flag) {
 
-       eventMask += oppChargeLeptonsC.addToMask( 1);
-       eventMask += twoLeptonsC.addToMask(1);
-       eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
-       eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT)); 
-       eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) );
-       eventMask += lep2ptC.addToMask((LepGood_pt[secondIndex] > LEP2PT) );
-       eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) );
-       eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));     
-       eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
-       if (fabs(LEP_PDG_ID) == 11) { 
-	 eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
-       }
+     //   eventMask += oppChargeLeptonsC.addToMask( 1);
+     //   eventMask += twoLeptonsC.addToMask(1);
+     //   eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
+     //   eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT)); 
+     //   eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) );
+     //   eventMask += lep2ptC.addToMask((LepGood_pt[secondIndex] > LEP2PT) );
+     //   eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) );
+     //   eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));     
+     //   eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
+     //   if (fabs(LEP_PDG_ID) == 11) { 
+     // 	 eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
+     //   }
 
-     }
+     // }
 
      // end of eventMask building
      // now entering analysis in bins of met
 
-     if ( (eventMask & maskMonoJetSelection) == maskMonoJetSelection ) {
+     if ( genLepFound_flag && (nLepLoose == 2) && ((eventMask & maskMonoJetSelection) == maskMonoJetSelection) ) {
 
        HmonoJetSel_noW_HTbin[htbin]->Fill(metNoLepPt);
        HmonojetW->Fill(metNoLepPt,newwgt);
 
        if (acceptanceSelectionDef) {
 
+	 TE_AccFillW->FillWeighted(true,newwgt,metNoLepPt);
+
 	 Hacc_noW_HTbin[htbin]->Fill(metNoLepPt);
 	 HaccW->Fill(metNoLepPt,newwgt);
 
 	 if (efficiencySelectionDef) {
 
+	   TE_EffFillW->FillWeighted(true,newwgt,metNoLepPt);
 	   Heff_noW_HTbin[htbin]->Fill(metNoLepPt);
 	   HeffW->Fill(metNoLepPt,newwgt);
 
-	 }
+	 } else TE_EffFillW->FillWeighted(false,newwgt,metNoLepPt);
 
-       }
+       } else TE_AccFillW->FillWeighted(false,newwgt,metNoLepPt);
+	 
+       if (acceptanceSelectionDef && efficiencySelectionDef) TE_AccEffFillW->FillWeighted(true,newwgt,metNoLepPt);
+       else TE_AccEffFillW->FillWeighted(false,newwgt,metNoLepPt);
 
      }
 
@@ -570,9 +590,9 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
    }
 
-   Int_t nEvtMonoJetSelPass = HmonoJetSelSumHTbin->GetEffectiveEntries();
-   Int_t nEvtAccSelPass = HaccSumHTbin->GetEffectiveEntries();
-   Int_t nEvtEffSelPass = HeffSumHTbin->GetEffectiveEntries();
+   Int_t nEvtMonoJetSelPass = -1;
+   Int_t nEvtAccSelPass = -1;
+   //Int_t nEvtEffSelPass = -1;
 
    // using [0] element to find step, all elements are equivalent for this purpose
    Int_t stepMonojetSelection_In_lepAccEff = lep_acc_eff[0]->whichStepHas(maskMonoJetSelection);
@@ -600,6 +620,10 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      HevtPassAccSel->SetBinError(      i+1,lep_acc_eff[i]->getEventsErr(stepAcceptance_In_lepAccEff));
      HevtPassEffSel->SetBinContent(    i+1,lep_acc_eff[i]->getEvents(stepEfficiency_In_lepAccEff));
      HevtPassEffSel->SetBinError(      i+1,lep_acc_eff[i]->getEventsErr(stepEfficiency_In_lepAccEff));
+
+     nEvtMonoJetSelPass = HmonoJetSelSumHTbin->GetBinContent(i+1);
+     nEvtAccSelPass = HaccSumHTbin->GetBinContent(i+1);
+     //nEvtEffSelPass = HeffSumHTbin->GetBinContent(i+1);
 
      acc = lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff];
      eff = lep_acc_eff[i]->nEvents[stepEfficiency_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepAcceptance_In_lepAccEff];
@@ -666,6 +690,10 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    for (Int_t i = 0; i < nMetBins; i++) {
      // do not merge with previous loop: I want to print them after the previous loop because I might copy and paste this output to make acc * eff table
      
+     nEvtMonoJetSelPass = HmonoJetSelSumHTbin->GetBinContent(i+1);
+     nEvtAccSelPass = HaccSumHTbin->GetBinContent(i+1);
+     //nEvtEffSelPass = HeffSumHTbin->GetBinContent(i+1);
+
      acceff = lep_acc_eff[i]->nEvents[stepEfficiency_In_lepAccEff]/lep_acc_eff[i]->nEvents[stepMonojetSelection_In_lepAccEff];
      Hacceff->SetBinContent(i+1,acceff);
      HacceffDivNnoW->SetBinContent(i+1,acceff);
@@ -706,19 +734,27 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
    TEfficiency *Acceptance = new TEfficiency(*HevtPassAccSel,*HevtPassMonoJetSel);
    TEfficiency *Efficiency = new TEfficiency(*HevtPassEffSel,*HevtPassAccSel);
-   TEfficiency *AccTimesEff = new TEfficiency(*HevtPassEffSel,*HevtPassMonoJetSel);
+   TEfficiency *AccEff = new TEfficiency(*HevtPassEffSel,*HevtPassMonoJetSel);
 
    Acceptance->SetUseWeightedEvents();
    Efficiency->SetUseWeightedEvents();
-   AccTimesEff->SetUseWeightedEvents();
+   AccEff->SetUseWeightedEvents();
 
    TGraphAsymmErrors *grAE_Acc = Acceptance->CreateGraph();
    TGraphAsymmErrors *grAE_Eff = Efficiency->CreateGraph();
-   TGraphAsymmErrors *grAE_AccTimesEff = AccTimesEff->CreateGraph();
+   TGraphAsymmErrors *grAE_AccEff = AccEff->CreateGraph();
 
    grAE_Acc->Write("grAE_Acc");
    grAE_Eff->Write("grAE_Eff");
-   grAE_AccTimesEff->Write("grAE_AccTimesEff");
+   grAE_AccEff->Write("grAE_AccEff");
+
+   TGraphAsymmErrors *grAE_AccFillW = TE_AccFillW->CreateGraph();
+   TGraphAsymmErrors *grAE_EffFillW = TE_EffFillW->CreateGraph();
+   TGraphAsymmErrors *grAE_AccEffFillW = TE_AccEffFillW->CreateGraph();
+
+   grAE_AccFillW->Write("grAE_AccFillW");
+   grAE_EffFillW->Write("grAE_EffFillW");
+   grAE_AccEffFillW->Write("grAE_AccEffFillW");
 
    rootFile->Write();
 

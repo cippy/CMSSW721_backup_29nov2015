@@ -1,0 +1,170 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian,english]{babel}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{sidecap}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{subfig}
+
+\begin{document}
+
+\begin{table}
+\caption{\emph{Entries after each selection step, normalised to 5.00 $fb^{-1}$; n is the number of entries after the i-th selection step; Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\,GeV.}}
+\[
+\begin{array}{rcrrr}
+\toprule
+\ \textbf{step}& \textbf{definition}  & n  &  n_i/n_0 & n_i/n_{i-1}  \\ 
+\midrule
+ 0  & \text{all entries} & 229781 & 1.0000 & 1.0000 \\
+\midrule
+ 1  & &   9199 & 0.0400 & 0.0400 \\
+& \text{metNoEle > 200} & & & \\
+\midrule
+ 2  & &   9199 & 0.0400 & 1.0000 \\
+& \text{OS/SF leptons} & & & \\
+\midrule
+ 3  & &   9199 & 0.0400 & 1.0000 \\
+& \text{electrons} & & & \\
+\midrule
+ 4  & &   8272 & 0.0360 & 0.8992 \\
+& \text{leading electron tight} & & & \\
+& \text{ele1pt >  32} & & & \\
+& \text{ele2pt >  20} & & & \\
+& \text{|ele1eta| < 2.4} & & & \\
+& \text{|ele2eta| < 2.4} & & & \\
+& \text{trailing electron tight} & & & \\
+\midrule
+ 5  & &   7141 & 0.0311 & 0.8633 \\
+& \text{mass in [ 60,120]} & & & \\
+\midrule
+ 6  & &   4727 & 0.0206 & 0.6620 \\
+& \text{njets} & & & \\
+\midrule
+ 7  & &   4557 & 0.0198 & 0.9640 \\
+& \text{jet1pt >  110} & & & \\
+\midrule
+ 8  & &   3954 & 0.0172 & 0.8676 \\
+& \text{jjdphi < 2.5} & & & \\
+\midrule
+ 9  & &   3953 & 0.0172 & 0.9997 \\
+& \text{muons veto} & & & \\
+\midrule
+ 10  & &   3953 & 0.0172 & 1.0000 \\
+& \text{photons veto} & & & \\
+\midrule
+\bottomrule
+\end{array}
+\]
+\end{table}
+
+\begin{table}
+\caption{\emph{Entries after each selection step, normalised to 5.00 $fb^{-1}$; n is the number of entries after the i-th selection step; Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\,GeV.}}
+\[
+\begin{array}{rcrrr}
+\toprule
+\ \textbf{step}& \textbf{definition}  & n  &  n_i/n_0 & n_i/n_{i-1}  \\ 
+\midrule
+ 0  & \text{all entries} & 229781 & 1.0000 & 1.0000 \\
+\midrule
+ 1  & & 159694 & 0.6950 & 0.6950 \\
+& \text{electrons generated} & & & \\
+\midrule
+ 2  & &   8609 & 0.0375 & 0.0539 \\
+& \text{metNoEle > 200} & & & \\
+\midrule
+ 3  & &   8609 & 0.0375 & 1.0000 \\
+& \text{OS/SF leptons} & & & \\
+\midrule
+ 4  & &   8609 & 0.0375 & 1.0000 \\
+& \text{electrons} & & & \\
+\midrule
+ 5  & &   7829 & 0.0341 & 0.9095 \\
+& \text{leading electron tight} & & & \\
+& \text{ele1pt >  32} & & & \\
+& \text{ele2pt >  20} & & & \\
+& \text{|ele1eta| < 2.4} & & & \\
+& \text{|ele2eta| < 2.4} & & & \\
+& \text{trailing electron tight} & & & \\
+\midrule
+ 6  & &   7130 & 0.0310 & 0.9107 \\
+& \text{mass in [ 60,120]} & & & \\
+\midrule
+ 7  & &   4720 & 0.0205 & 0.6620 \\
+& \text{njets} & & & \\
+\midrule
+ 8  & &   4550 & 0.0198 & 0.9641 \\
+& \text{jet1pt >  110} & & & \\
+\midrule
+ 9  & &   3948 & 0.0172 & 0.8676 \\
+& \text{jjdphi < 2.5} & & & \\
+\midrule
+ 10  & &   3946 & 0.0172 & 0.9997 \\
+& \text{muons veto} & & & \\
+\midrule
+ 11  & &   3946 & 0.0172 & 1.0000 \\
+& \text{photons veto} & & & \\
+\midrule
+\bottomrule
+\end{array}
+\]
+\end{table}
+
+\begin{table}
+\caption{\emph{Entries after each selection step, normalised to 5.00 $fb^{-1}$; n is the number of entries after the i-th selection step; Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\,GeV.}}
+\[
+\begin{array}{rcrrr}
+\toprule
+\ \textbf{step}& \textbf{definition}  & n  &  n_i/n_0 & n_i/n_{i-1}  \\ 
+\midrule
+ 0  & \text{all entries} & 229781 & 1.0000 & 1.0000 \\
+\midrule
+ 1  & &  59128 & 0.2573 & 0.2573 \\
+& \text{taus generated} & & & \\
+\midrule
+ 2  & &    475 & 0.0021 & 0.0080 \\
+& \text{metNoEle > 200} & & & \\
+\midrule
+ 3  & &    475 & 0.0021 & 1.0000 \\
+& \text{OS/SF leptons} & & & \\
+\midrule
+ 4  & &    475 & 0.0021 & 1.0000 \\
+& \text{electrons} & & & \\
+\midrule
+ 5  & &    353 & 0.0015 & 0.7434 \\
+& \text{leading electron tight} & & & \\
+& \text{ele1pt >  32} & & & \\
+& \text{ele2pt >  20} & & & \\
+& \text{|ele1eta| < 2.4} & & & \\
+& \text{|ele2eta| < 2.4} & & & \\
+& \text{trailing electron tight} & & & \\
+\midrule
+ 6  & &  11.23 & 0.0000 & 0.0318 \\
+& \text{mass in [ 60,120]} & & & \\
+\midrule
+ 7  & &   7.46 & 0.0000 & 0.6642 \\
+& \text{njets} & & & \\
+\midrule
+ 8  & &   6.90 & 0.0000 & 0.9245 \\
+& \text{jet1pt >  110} & & & \\
+\midrule
+ 9  & &   6.23 & 0.0000 & 0.9039 \\
+& \text{jjdphi < 2.5} & & & \\
+\midrule
+ 10  & &   6.22 & 0.0000 & 0.9986 \\
+& \text{muons veto} & & & \\
+\midrule
+ 11  & &   6.22 & 0.0000 & 1.0000 \\
+& \text{photons veto} & & & \\
+\midrule
+\bottomrule
+\end{array}
+\]
+\end{table}
+
+\end{document}
