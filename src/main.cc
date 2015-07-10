@@ -509,7 +509,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (argc == 3 && std::strcmp("l",argv[2])) {
+  if (argc == 3 && (std::strcmp("axel",argv[2]) &&  std::strcmp("rerel",argv[2])) ) {
 
     std::cout << "not valid option " << argv[2] <<std::endl;
     exit(EXIT_FAILURE);
@@ -567,10 +567,19 @@ int main(int argc, char* argv[]) {
   std::cout<<chain->GetEntries()<<std::endl;      
   //================ Run Analysis
 
-  if (!(argc == 3 && std::strcmp("l",argv[2]))) {
+  if (argc == 3) {
 
-    zlljets_Axe_noSkim_light tree( chain );
-    tree.loop(configFileName);
+    if (!(std::strcmp("axel",argv[2]))) {
+
+      zlljets_Axe_noSkim_light tree( chain );
+      tree.loop(configFileName);
+
+    } else if ( !(std::strcmp("rerel",argv[2]))) {
+
+      zlljets_resoResp_noSkim_light tree( chain );
+      tree.loop(configFileName);
+
+    }
 
   } else {
 
