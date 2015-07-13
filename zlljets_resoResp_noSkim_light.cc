@@ -159,17 +159,29 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    if (inputFile.is_open()) {
 
      Double_t value;
+     string name;
      string parameterName;
+     string parameterType;
      vector<Double_t> parameterValue;
 
      mySpaces(cout,2);
      cout << "Printing content of " << configFileName << " file" << endl;
      mySpaces(cout,1);
 
-     while (inputFile >> parameterName >> value) {
+     while (inputFile >> parameterType ) {
 
-       parameterValue.push_back(value);
-       cout << setw(20) << parameterName << setw(7) << value << endl;
+       if (parameterType == "NUMBER") {
+
+	 inputFile >> parameterName >> value;
+	 parameterValue.push_back(value);
+	 cout << setw(20) << parameterName << setw(7) << value << endl;
+
+       } else if (parameterType == "STRING") {
+	 
+	 inputFile >> parameterName >> name;
+	 cout << setw(20) << parameterName << "  " << left << name << endl;
+
+       }
 
      }
      
@@ -491,7 +503,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
  
 
    TH1::SetDefaultSumw2();            //all the following histograms will automatically call TH1::Sumw2() 
-   TH1::StatOverflows();                 //enable use of underflows and overflows for statistics computation 
+   //TH1::StatOverflows();                 //enable use of underflows and overflows for statistics computation 
    TVirtualFitter::SetDefaultFitter("Minuit");
 
    //Int_t Hcolor[] = {1,2,3,4,5,6,7,8,9,12,18,30,38,41,42,46,47,49};       
@@ -612,6 +624,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      // Z_PDGID = 23   
      genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
      if (!genLepFound_flag) continue;
+     recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);  
+     if (!recoLepFound_flag) continue;
  
      l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
      l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
@@ -620,7 +634,6 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      Double_t ZtoLLGenPt = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
      Z_index = GenPart_motherIndex[firstIndexGen];   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);  
      
-     recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);       
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
      Zreco = l1reco + l2reco;
@@ -695,7 +708,6 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
      eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
      //eventMask += metNoLep200C.addToMask(metNoLepPt > METNOLEP_START);
-     eventMask += HLTlepC.addToMask(HLT_passed_flag);     
 
      // for (Int_t i = 0; i <  metCut.size(); i++) {
      //   eventMask += metNoLepC[i].addToMask(metNoLepPt > metCut[i]);
@@ -706,6 +718,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      // also, 2 OS/SF leptons are present
      if (recoLepFound_flag) {
 
+       eventMask += HLTlepC.addToMask(HLT_passed_flag);     
        eventMask += oppChargeLeptonsC.addToMask( 1);
        eventMask += twoLeptonsC.addToMask(1);
        eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
@@ -715,10 +728,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
        eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) );
        eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));     
        eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
-       if (fabs(LEP_PDG_ID) == 11) { 
-	 eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
-       }
-
+       eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
+      
      }
 
      // end of eventMask building
