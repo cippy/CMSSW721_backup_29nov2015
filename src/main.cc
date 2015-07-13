@@ -510,12 +510,12 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (argc == 3 && (std::strcmp("axel",argv[2]) &&  std::strcmp("rerel",argv[2])) ) {
+  // if (argc == 3 && (std::strcmp("axel",argv[2]) &&  std::strcmp("rerel",argv[2])) ) {
 
-    std::cout << "not valid option " << argv[2] <<std::endl;
-    exit(EXIT_FAILURE);
+  //   std::cout << "not valid option " << argv[2] <<std::endl;
+  //   exit(EXIT_FAILURE);
 
-  }
+  // }
 
   char configFileName[200];
   std::strcpy(configFileName,argv[1]);
@@ -523,6 +523,7 @@ int main(int argc, char* argv[]) {
   Double_t muonOrElectron_PDGID;
   string treePath;
   string friendTreePath;
+  string option = "none";
 
   ifstream inputFile(configFileName);
 
@@ -569,6 +570,12 @@ int main(int argc, char* argv[]) {
 
 	 }  
 
+	 if (parameterName == "OPTION") {
+
+	   option = name;
+	   std::cout << setw(20) << "option : " << option <<std::endl;
+
+	 }  
 
        }
 
@@ -602,24 +609,27 @@ int main(int argc, char* argv[]) {
   std::cout<<chain->GetEntries()<<std::endl;      
   //================ Run Analysis
 
-  if (argc == 3) {
+  
 
-    if ( !(std::strcmp("axel",argv[2]))) {
+  if ( !(std::strcmp("axel",option))) {
 
-      zlljets_Axe_noSkim_light tree( chain );
-      tree.loop(configFileName);
+    zlljets_Axe_noSkim_light tree( chain );
+    tree.loop(configFileName);
 
-    } else if ( !(std::strcmp("rerel",argv[2]))) {
+  } else if ( !(std::strcmp("rerel",option))) {
 
-      zlljets_resoResp_noSkim_light tree( chain );
-      tree.loop(configFileName);
+    zlljets_resoResp_noSkim_light tree( chain );
+    tree.loop(configFileName);
 
-    }
-
-  } else {
+  } else if (!(std::strcmp("none",option)) ) {
 
     zlljets_Axe_noSkim tree( chain );
     tree.loop(configFileName);
+
+  } else {
+
+    std::cout << "Option '" << option << "' not found. End of programme" << std::endl;
+    return 0;
 
   }
   
