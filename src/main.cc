@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -519,25 +520,55 @@ int main(int argc, char* argv[]) {
   char configFileName[200];
   std::strcpy(configFileName,argv[1]);
 
-  ifstream inputFile(configFileName);
   Double_t muonOrElectron_PDGID;
+  string treePath;
+  string friendTreePath;
+
+  ifstream inputFile(configFileName);
 
    if (inputFile.is_open()) {
 
      Double_t value;
+     string name;
      string parameterName;
-     while (inputFile >> parameterName >> value) {
+     string parameterType;
+     while (inputFile >> parameterType ) {  // read only first object  here
 
-       if (parameterName == "LEP_PDG_ID") {
+       if (parameterType == "NUMBER") {
 
-	 muonOrElectron_PDGID = (Int_t) value;
-	 std::cout << "lepton_pdgID = " << value <<std::endl;
+	 inputFile >> parameterName >> value;  
 
-	 if (fabs(muonOrElectron_PDGID) == 13) {
-	   std::cout << "Analysis of Z->mumu" << std::endl;
-	 } else if (fabs(muonOrElectron_PDGID) == 11) {
-	   std::cout << "Analysis of Z->ee" << std::endl;
-	 }
+	 if (parameterName == "LEP_PDG_ID") {
+
+	   muonOrElectron_PDGID = (Int_t) value;
+	   std::cout << "lepton_pdgID = " << value <<std::endl;
+
+	   if (fabs(muonOrElectron_PDGID) == 13) {
+	     std::cout << "Analysis of Z->mumu" << std::endl;
+	   } else if (fabs(muonOrElectron_PDGID) == 11) {
+	     std::cout << "Analysis of Z->ee" << std::endl;
+	   }
+
+	 }   
+
+       } else if (parameterType == "STRING") {
+
+	 inputFile >> parameterName >> name;
+
+	 if (parameterName == "TREE_PATH") {
+
+	   treePath = name;
+	   std::cout << setw(20) << "tree : " << treePath <<std::endl;
+
+	 }  
+
+	 if (parameterName == "FRIEND_TREE_PATH") {
+
+	   friendTreePath = name;
+	   std::cout << setw(20) << "friend tree : " << friendTreePath <<std::endl;
+
+	 }  
+
 
        }
 
@@ -552,12 +583,16 @@ int main(int argc, char* argv[]) {
 
    }
 
-   std::cout<<"Using Emanuele's trees with no skim"<<std::endl;
+   //std::cout<<"Using Emanuele's trees with no skim"<<std::endl;
+   std::cout<< std::endl;
+   std::cout<<"Using Emanuele's trees "<<std::endl;
    std::cout << "Creating chain ..." << std::endl;
    TChain* chain = new TChain("tree");
-   chain->Add("/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/tree.root");
+   //chain->Add("/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/tree.root");
+   chain->Add(treePath.c_str());
    TChain* chFriend = new TChain("mjvars/t");
-   chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
+   //chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
+   chain->AddFriend("mjvars/t",friendTreePath.c_str());
 
   if(!chain) {
     std::cout << "Error: chain not created. End of programme" << std::endl;
@@ -569,7 +604,7 @@ int main(int argc, char* argv[]) {
 
   if (argc == 3) {
 
-    if (!(std::strcmp("axel",argv[2]))) {
+    if ( !(std::strcmp("axel",argv[2]))) {
 
       zlljets_Axe_noSkim_light tree( chain );
       tree.loop(configFileName);
