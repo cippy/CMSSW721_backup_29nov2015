@@ -523,7 +523,7 @@ int main(int argc, char* argv[]) {
   Double_t muonOrElectron_PDGID;
   string treePath;
   string friendTreePath;
-  string option = "none";
+  string option = "";
 
   ifstream inputFile(configFileName);
 
@@ -611,19 +611,19 @@ int main(int argc, char* argv[]) {
 
   
 
-  if ( !(std::strcmp("axel",option))) {
+  if ( !(std::strcmp("axel",option.c_str()))) {
 
     zlljets_Axe_noSkim_light tree( chain );
     tree.loop(configFileName);
 
-  } else if ( !(std::strcmp("rerel",option))) {
+  } else if ( !(std::strcmp("rerel",option.c_str()))) {
 
     zlljets_resoResp_noSkim_light tree( chain );
     tree.loop(configFileName);
 
-  } else if (!(std::strcmp("none",option)) ) {
+  } else if (!(std::strcmp("ana",option.c_str())) ) {
 
-    zlljets_Axe_noSkim tree( chain );
+    zlljetsAna_new tree( chain );
     tree.loop(configFileName);
 
   } else {
