@@ -159,17 +159,29 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    if (inputFile.is_open()) {
 
      Double_t value;
+     string name;
      string parameterName;
+     string parameterType;
      vector<Double_t> parameterValue;
 
      mySpaces(cout,2);
      cout << "Printing content of " << configFileName << " file" << endl;
      mySpaces(cout,1);
 
-     while (inputFile >> parameterName >> value) {
+     while (inputFile >> parameterType ) {
 
-       parameterValue.push_back(value);
-       cout << setw(20) << parameterName << setw(7) << value << endl;
+       if (parameterType == "NUMBER") {
+
+	 inputFile >> parameterName >> value;
+	 parameterValue.push_back(value);
+	 cout << setw(20) << parameterName << setw(7) << value << endl;
+
+       } else if (parameterType == "STRING") {
+	 
+	 inputFile >> parameterName >> name;
+	 cout << setw(20) << parameterName << "  " << left << name << endl;
+
+       }
 
      }
      
@@ -248,8 +260,8 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // the following are only for electrons
    selection lep2tightIdIso04C;
 
-   //TVector3 met, ele, eleVectorSum;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
-   TVector2 met, ele, eleVectorSum; 
+   //TVector3 met, ele;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
+   TVector2 met, ele; 
 
    // following indices refer to the leading pair of OS/SF in the list of LepGood. They are initialized with 0 and 1 by default, but can be set with function
    // myGetPairIndexInArray (see functionsForAnalysis.cc for reference). 
@@ -422,7 +434,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if ((jentry % 500000) == 0) cout << "jentry = " << jentry << endl;
+     if ((jentry % 500000) == 0) cout << jentry << endl;
 
      UInt_t eventMask = 0; 
      Double_t newwgt = weight * LUMI;
@@ -448,7 +460,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
        ZgenMass = GenPart_mass[Z_index];
 
-     }
+     } else continue;  // if I look for Z->mumu events, then I must skip events where Z doesn't go into muons
      
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);       
 
