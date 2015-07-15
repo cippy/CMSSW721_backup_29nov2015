@@ -645,7 +645,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
 	 // use the dimuon trigger, not the metNoLep trigger
        	 if ( recoLepFound_flag && (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
-       	      (LepGood_pt[secondIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
+       	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
        	 else continue;
 
        }  // end of   if ( HLT_FLAG )
@@ -667,7 +667,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
        	 if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
        	      (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
-       	      (LepGood_pt[secondIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
+       	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
 	 else continue;
 
        }  // end of   if ( HLT_FLAG )
@@ -701,7 +701,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      eventMask += genLepC.addToMask( genLepFound_flag );
      //eventMask += genTausC.addToMask( myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23) );  // tau pdg id = 15, Z pdg id = 23 
 
-     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));
+     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));  //could skip cut on eta
      eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
      eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
      eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
@@ -908,14 +908,30 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    Double_t xValues[NVTXS];
    Double_t yValues[NVTXS];
    Double_t yValuesErr[NVTXS];
+
    for (Int_t i = 0; i < NVTXS; i++) {
      xValues[i] = i + FIRST_NVTX;
+     yValues[i] = H_uPar_VS_Nvtx_lowZpT[i]->GetRMS();
+     yValuesErr[i] = H_uPar_VS_Nvtx_lowZpT[i]->GetRMSError();
+   }
+
+   TGraphErrors *GresolutionMetNoLepParZvsNvtx_lowZpT = new TGraphErrors(NVTXS,xValues,yValues,0,yValuesErr);
+   GresolutionMetNoLepParZvsNvtx_lowZpT->SetTitle(Form("resolution || from histogram's RMS, ZpT in [%2.0lf,250] GeV",ZptBinEdges[0]));
+   GresolutionMetNoLepParZvsNvtx_lowZpT->Draw("AP");
+   GresolutionMetNoLepParZvsNvtx_lowZpT->SetMarkerStyle(7);  // 7 is a medium dot
+   GresolutionMetNoLepParZvsNvtx_lowZpT->GetXaxis()->SetTitle("nvtx");
+   GresolutionMetNoLepParZvsNvtx_lowZpT->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
+   GresolutionMetNoLepParZvsNvtx_lowZpT->GetYaxis()->SetTitleOffset(1.4); 
+   GresolutionMetNoLepParZvsNvtx_lowZpT->SetName("gr_resolution_uPar_vs_Nvtx_lowZpT");
+   GresolutionMetNoLepParZvsNvtx_lowZpT->Write();
+
+   for (Int_t i = 0; i < NVTXS; i++) {
      yValues[i] = H_uPar_VS_Nvtx[i]->GetRMS();
      yValuesErr[i] = H_uPar_VS_Nvtx[i]->GetRMSError();
    }
 
    TGraphErrors *GresolutionMetNoLepParZvsNvtx = new TGraphErrors(NVTXS,xValues,yValues,0,yValuesErr);
-   GresolutionMetNoLepParZvsNvtx->SetTitle("resolution || from histogram's RMS");
+   GresolutionMetNoLepParZvsNvtx->SetTitle("resolution || from histogram's RMS, ZpT in [250,500] GeV");
    GresolutionMetNoLepParZvsNvtx->Draw("AP");
    GresolutionMetNoLepParZvsNvtx->SetMarkerStyle(7);  // 7 is a medium dot
    GresolutionMetNoLepParZvsNvtx->GetXaxis()->SetTitle("nvtx");
@@ -954,7 +970,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
    }
 
-   TGraphErrors *GresponseCurve = new TGraphErrors(nBinsForResponse,meanZpt,response,0,responseErr);
+   TGraphErrors *GresponseCurve = new TGraphErrors(nBinsForResponse,meanZpt,response,meanZptErr,responseErr);
    GresponseCurve->SetTitle("response curve");
    GresponseCurve->Draw("AP");
    GresponseCurve->SetMarkerStyle(7);    // 7 is a medium dot
@@ -979,7 +995,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      resoMetNoLepOrtZvsZptErr[i] = H_uPerp_VS_ZpT[i]->GetRMSError();
    }
 
-   TGraphErrors *GresolutionMetNoLepParZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepParZvsZpt,0,resoMetNoLepParZvsZptErr);
+   TGraphErrors *GresolutionMetNoLepParZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepParZvsZpt,meanZptErr,resoMetNoLepParZvsZptErr);
    GresolutionMetNoLepParZvsZpt->SetTitle("resolution || from histogram's RMS");
    GresolutionMetNoLepParZvsZpt->Draw("AP");
    GresolutionMetNoLepParZvsZpt->SetMarkerStyle(7);  // 7 is a medium dot
@@ -989,7 +1005,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    GresolutionMetNoLepParZvsZpt->SetName("gr_resolution_uPar_vs_ZpT");
    GresolutionMetNoLepParZvsZpt->Write();
 
-   TGraphErrors *GresolutionMetNoLepOrtZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepOrtZvsZpt,0,resoMetNoLepOrtZvsZptErr);
+   TGraphErrors *GresolutionMetNoLepOrtZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepOrtZvsZpt,meanZptErr,resoMetNoLepOrtZvsZptErr);
    GresolutionMetNoLepOrtZvsZpt->SetTitle("resolution _|_ from histogram's RMS");
    GresolutionMetNoLepOrtZvsZpt->Draw("AP");
    GresolutionMetNoLepOrtZvsZpt->SetMarkerStyle(7);
