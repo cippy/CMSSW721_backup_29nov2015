@@ -524,7 +524,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    // TH1D* Hacceff = new TH1D("Hacceff","",nMetBins,metBinEdges);
    // TH1D *HzvvEstimate = new TH1D("HzvvEstimate",Form("yields of Z->#nu#nu estimated as N(%s) * BR_ratio / (A*#varepsilon)",CONTROL_SAMPLE),nMetBins,metBinEdges);
 
-   TH1D *HinvMass[nMetBins];
+   //TH1D *HinvMass[nMetBins];
    TH1D *HzlljetsInvMassMetBinGenLep[nMetBins];
    //TH1D *HzlljetsInvMassMetBinGenTau[nMetBins];
    TH1D *HZtoLLRecoPt_MetBin[nMetBins];
