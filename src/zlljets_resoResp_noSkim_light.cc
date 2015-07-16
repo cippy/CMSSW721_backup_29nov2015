@@ -153,6 +153,9 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    Int_t NVTXS;                           // # of points for study of u_par and u_perp vs # of reconstructed vertices nvtx
    Int_t FIRST_NVTX;                    // starting number of vertices for met study   
    Double_t METNOLEP_START;
+   Int_t JETS_SELECTION_RESORESP_FLAG;
+   Int_t PHOTON_VETO_RESORESP_FLAG;
+   Int_t LEPTON_VETO_RESORESP_FLAG;
    string FILENAME_BASE;
 
    ifstream inputFile(configFileName);
@@ -221,6 +224,9 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      NVTXS = parameterValue[30];
      FIRST_NVTX = parameterValue[31];
      METNOLEP_START = parameterValue[32];
+     JETS_SELECTION_RESORESP_FLAG = (Int_t) parameterValue[33];
+     PHOTON_VETO_RESORESP_FLAG = (Int_t) parameterValue[34];
+     LEPTON_VETO_RESORESP_FLAG = (Int_t) parameterValue[35];
      mySpaces(cout,2);
 
      inputFile.close();
@@ -389,8 +395,9 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    selection::checkMaskLength();
    selection::printActiveSelections(cout);
 
-   UInt_t maskMonoJetSelection = njetsC.get2ToId() + jet1C.get2ToId() + jjdphiC.get2ToId() +
-                                   lepLooseVetoC.get2ToId() + gammaLooseVetoC.get2ToId();
+   UInt_t maskJetsSelection = njetsC.get2ToId() + jet1C.get2ToId() + jjdphiC.get2ToId();
+
+   UInt_t maskMonoJetSelection = maskJetsSelection + lepLooseVetoC.get2ToId() + gammaLooseVetoC.get2ToId();
 
    if ( TAU_VETO_FLAG ) maskMonoJetSelection += tauLooseVetoC.get2ToId();
 
@@ -489,16 +496,21 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    zlljetsControlSampleGenLep.append(lepLooseVetoC.get2ToId());
    zlljetsControlSampleGenLep.append(gammaLooseVetoC.get2ToId());
 
-   if (TAU_VETO_FLAG) {
-     // zlljetsControlSample.append(tauLooseVetoC.get2ToId());
-     zlljetsControlSampleGenLep.append(tauLooseVetoC.get2ToId());
-   }
-
    // tautaubkgInZll.append(jet1C.get2ToId());
    // tautaubkgInZll.append(jjdphiC.get2ToId());
    // tautaubkgInZll.append(njetsC.get2ToId());
    // tautaubkgInZll.append(lepLooseVetoC.get2ToId());
    // tautaubkgInZll.append(gammaLooseVetoC.get2ToId());
+
+   if (JETS_SELECTION_RESORESP_FLAG) resoAndResponse.append(maskJetsSelection);
+   if (PHOTON_VETO_RESORESP_FLAG) resoAndResponse.append(gammaLooseVetoC.get2ToId());
+   if (LEPTON_VETO_RESORESP_FLAG) resoAndResponse.append(lepLooseVetoC.get2ToId());
+
+   if (TAU_VETO_FLAG) {
+     // zlljetsControlSample.append(tauLooseVetoC.get2ToId());
+     zlljetsControlSampleGenLep.append(tauLooseVetoC.get2ToId());
+     resoAndResponse.append(tauLooseVetoC.get2ToId());
+   }
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
 
@@ -539,11 +551,14 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    TH1D *HZtoLLPt_RecoGenRatio_MetBin[nMetBins];
    TH1D *HZtoLLPt_RecoGenRatio_pdf_MetBin[nMetBins];
 
+   Float_t invMassBinWidth = 2.0;  // invariant mass histogram's bin width in GeV
+   Int_t NinvMassBins = (DILEPMASS_UP - DILEPMASS_LOW) / invMassBinWidth;
+
    for (Int_t i = 0; i < nMetBins; i++) {
 
-     //HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
-     HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
-     //HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
+     //HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
+     HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
+     //HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
      HZtoLLRecoPt_MetBin[i] = new TH1D(Form("HZtoLLRecoPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
      HZtoLLGenPt_MetBin[i] = new TH1D(Form("HZtoLLGenPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
      HZtoLLPt_RecoGenRatio_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
