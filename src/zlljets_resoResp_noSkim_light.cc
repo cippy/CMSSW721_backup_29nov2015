@@ -153,6 +153,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    Int_t NVTXS;                           // # of points for study of u_par and u_perp vs # of reconstructed vertices nvtx
    Int_t FIRST_NVTX;                    // starting number of vertices for met study   
    Double_t METNOLEP_START;
+   string FILENAME_BASE;
 
    ifstream inputFile(configFileName);
 
@@ -179,7 +180,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
        } else if (parameterType == "STRING") {
 	 
 	 inputFile >> parameterName >> name;
-	 cout << setw(20) << parameterName << "  " << left << name << endl;
+	 cout << right << setw(20) << parameterName << "  " << left << name << endl;
+	 if (parameterName == "FILENAME_BASE") FILENAME_BASE = name; 
 
        }
 
@@ -269,7 +271,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    selection lep1etaC;  
    selection lep2etaC;
    selection genLepC;  
-   //selection metNoLep200C;
+   selection metNoLepStartC;
    selection HLTlepC;
    // the following are only for electrons
    selection lep2tightIdIso04C;
@@ -316,11 +318,12 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
 
+   strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
+   strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
+   strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
      
-     strcpy(ROOT_FNAME,"zmumujets_resoResp_noSkim_light.root");
-     strcpy(TXT_FNAME,"zmumujets_resoResp_noSkim_light.txt");
-     strcpy(TEX_FNAME,"zmumujets_resoResp_noSkim_light.tex");
      strcpy(FLAVOUR,"mu");
      strcpy(LL_FLAVOUR,"mumu");
      strcpy(CONTROL_SAMPLE,"Z-->mumu");
@@ -345,16 +348,13 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
      genLepC.set("genMuonsC","muons generated");     
-     //metNoLep200C.set("metNoMu200C","metNoMu > 200");
+     metNoLepStartC.set("metNoMu200C",Form("metNoMu > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTmuonC","HLT for muons");
      lep2tightIdIso04C.set("mu2tightIdIso04C","trailing muon tight","tight ID + relIso04 (as Emanuele)");
 
 
    } else if (fabs(LEP_PDG_ID) == 11) {   // if we have Z -> ee do different stuff...
 
-     strcpy(ROOT_FNAME,"zeejets_resoResp_noSkim_light.root");
-     strcpy(TXT_FNAME,"zeejets_resoResp_noSkim_light.txt");
-     strcpy(TEX_FNAME,"zeejets_resoResp_noSkim_light.tex");
      strcpy(FLAVOUR,"ele");
      strcpy(LL_FLAVOUR,"ee");
      strcpy(CONTROL_SAMPLE,"Z-->ee");
@@ -376,7 +376,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
      genLepC.set("genElectronsC","electrons generated");     
-     //metNoLep200C.set("metNoEle200C","metNoEle > 200");
+     metNoLepStartC.set("metNoEle200C",Form("metNoEle > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
 
@@ -418,23 +418,30 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
    // }
 
+   if (METNOLEP_START) {
+       
+     zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
+     //resoAndResponse.append(metNoLepStartC.get2ToId());
+
+   }
+
    if (fabs(LEP_PDG_ID) == 13) {  
 
      maskTightTag = lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId();  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
    
-     // zlljetsControlSample.append(metNoLep200C.get2ToId());
+     // zlljetsControlSample.append(metNoLepStartC.get2ToId());
      // zlljetsControlSample.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
      // zlljetsControlSample.append(twoLeptonsC.get2ToId());
      // zlljetsControlSample.append(maskTightTag);
      // zlljetsControlSample.append(invMassC.get2ToId());
          
-     //zlljetsControlSampleGenLep.append(metNoLep200C.get2ToId());
+     //zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
      zlljetsControlSampleGenLep.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
      zlljetsControlSampleGenLep.append(twoLeptonsC.get2ToId());
      zlljetsControlSampleGenLep.append(maskTightTag); 
      zlljetsControlSampleGenLep.append(invMassC.get2ToId());
    
-     // tautaubkgInZll.append(metNoLep200C.get2ToId());
+     // tautaubkgInZll.append(metNoLepStartC.get2ToId());
      // tautaubkgInZll.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
      // tautaubkgInZll.append(twoLeptonsC.get2ToId());
      // tautaubkgInZll.append(maskTightTag);
@@ -447,19 +454,19 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
      maskTightTag = lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId() + lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId();
 
-     // zlljetsControlSample.append(metNoLep200C.get2ToId());
+     // zlljetsControlSample.append(metNoLepStartC.get2ToId());
      // zlljetsControlSample.append(oppChargeLeptonsC.get2ToId()); // skip loose requirement because I wil ask the tight one for both
      // zlljetsControlSample.append(twoLeptonsC.get2ToId());
      // zlljetsControlSample.append(maskTightTag);
      // zlljetsControlSample.append(invMassC.get2ToId());
        
-     //zlljetsControlSampleGenLep.append(metNoLep200C.get2ToId());
+     //zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
      zlljetsControlSampleGenLep.append(oppChargeLeptonsC.get2ToId());
      zlljetsControlSampleGenLep.append(twoLeptonsC.get2ToId());
      zlljetsControlSampleGenLep.append(maskTightTag);
      zlljetsControlSampleGenLep.append(invMassC.get2ToId());
    
-     // tautaubkgInZll.append(metNoLep200C.get2ToId());
+     // tautaubkgInZll.append(metNoLepStartC.get2ToId());
      // tautaubkgInZll.append(oppChargeLeptonsC.get2ToId());
      // tautaubkgInZll.append(twoLeptonsC.get2ToId());
      // tautaubkgInZll.append(maskTightTag);
@@ -707,7 +714,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
      eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
      eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
-     //eventMask += metNoLep200C.addToMask(metNoLepPt > METNOLEP_START);
+     eventMask += metNoLepStartC.addToMask(metNoLepPt > METNOLEP_START);
 
      // for (Int_t i = 0; i <  metCut.size(); i++) {
      //   eventMask += metNoLepC[i].addToMask(metNoLepPt > metCut[i]);
