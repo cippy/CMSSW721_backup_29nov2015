@@ -261,7 +261,8 @@ void zlljetsAna_new::loop(const char* configFileName)
    selection HLTlepC;
    selection lep2tightIdIso04C;
 
-   TVector3 metNoLepTV3, ele;
+   //TVector3 metNoLepTV, ele;
+   TVector2 metNoLepTV, ele;
 
    // following indices refer to the leading pair of OS/SF in the list of LepGood. They are initialized with 0 and 1 by default, but can be set with function
    // myGetPairIndexInArray (see functionsForAnalysis.cc for reference). 
@@ -611,15 +612,44 @@ void zlljetsAna_new::loop(const char* configFileName)
 
        } else HLT_passed_flag = 1; 
 
-       metNoLepTV3.SetPtEtaPhi(met_pt,met_eta,met_phi);
+       // metNoLepTV.SetPtEtaPhi(met_pt,met_eta,met_phi);
        // summing just electrons from Z if found
-       ele.SetPtEtaPhi(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex]);
-       metNoLepTV3 += ele;
-       ele.SetPtEtaPhi(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex]);
-       metNoLepTV3 += ele;
+       // if (recoLepFound_flag) {
+       // 	 ele.SetPtEtaPhi(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex]);
+       // 	 metNoLepTV += ele;
+       // 	 ele.SetPtEtaPhi(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex]);
+       // 	 metNoLepTV += ele;
+       // }
+       
+       // I don't want to skip a priori events without an e+ and an e-, thus I am forced tosm any electron to met, then there will be the selection requiring
+       // exactly 2 loose OS electrons, rejecting events without such particles a posteriori.
+       // otherwise I should compute metNoEle only if I have found 2 OS electrons like I would above (commented code) where I use their indices
+       // but this is not exactly transparent (I do it to get resolution because in that case I want to sum the Z to met, so I can directly skip events without
+       // at least 2 OS electrons)
 
-       metNoLepPt = metNoLepTV3.Pt();   // for electrons we define it by hand, for muons we use the variable in the tree
-     
+       metNoLepTV.SetMagPhi(met_pt,met_phi);
+
+       for (Int_t i = 0; i < nLepGood; i++) {
+	 if (fabs(LepGood_pdgId[i]) == LEP_PDG_ID) {
+	   //ele.SetPtEtaPhi(LepGood_pt[i],LepGood_eta[i],LepGood_phi[i]);
+	   ele.SetMagPhi(LepGood_pt[i],LepGood_phi[i]);
+	   metNoLepTV += ele;
+	 }
+       }
+
+       metNoLepPt = metNoLepTV.Mod();   // for electrons we define it by hand, for muons we use the variable in the tree
+
+       // same as above but using TVector3 (slower). I keep it so that I can switch back to it more easily by uncommenting this part
+       // for (Int_t i = 0; i < nLepGood; i++) {
+       // 	 if (fabs(LepGood_pdgId[i]) == LEP_PDG_ID) {
+       // 	   //ele.SetPtEtaPhi(LepGood_pt[i],LepGood_eta[i],LepGood_phi[i]);
+       // 	   ele.SetMagPhi(LepGood_pt[i],LepGood_eta[i],LepGood_phi[i]);
+       // 	   metNoLepTV += ele;
+       // 	 }
+       // }
+       //
+       // metNoLepPt = metNoLepTV.Pt();   // for electrons we define it by hand, for muons we use the variable in the tree
+
      }
 
      eventMask += genLepC.addToMask( genLepFound_flag );
