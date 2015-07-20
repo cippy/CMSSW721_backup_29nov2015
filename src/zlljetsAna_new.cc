@@ -321,7 +321,7 @@ void zlljetsAna_new::loop(const char* configFileName)
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
      genLepC.set("genMuonsC","muons generated");    
-     HLTlepC.set("HLTelectronC","HLT for electrons");
+     HLTlepC.set("HLTmuonC","HLT for muons");
      metNoLepStartC.set("metNoMuStartC",Form("metNoMu > %2.0lf",METNOLEP_START));
 
    } else if (fabs(LEP_PDG_ID) == 11) {   // if we have Z -> ee do different stuff...
@@ -443,16 +443,17 @@ void zlljetsAna_new::loop(const char* configFileName)
    zlljetsControlSampleGenLep.append(lepLooseVetoC.get2ToId());
    zlljetsControlSampleGenLep.append(gammaLooseVetoC.get2ToId());
 
-   if (TAU_VETO_FLAG) {
-     zlljetsControlSample.append(tauLooseVetoC.get2ToId());
-     zlljetsControlSampleGenLep.append(tauLooseVetoC.get2ToId());
-   }
-
    tautaubkgInZll.append(jet1C.get2ToId());
    tautaubkgInZll.append(jjdphiC.get2ToId());
    tautaubkgInZll.append(njetsC.get2ToId());
    tautaubkgInZll.append(lepLooseVetoC.get2ToId());
    tautaubkgInZll.append(gammaLooseVetoC.get2ToId());
+
+   if (TAU_VETO_FLAG) {
+     zlljetsControlSample.append(tauLooseVetoC.get2ToId());
+     zlljetsControlSampleGenLep.append(tauLooseVetoC.get2ToId());
+     tautaubkgInZll.append(tauLooseVetoC.get2ToId());
+   } 
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
 
@@ -587,7 +588,7 @@ void zlljetsAna_new::loop(const char* configFileName)
        if ( HLT_FLAG ) {
 	 
 	 // use the dimuon trigger, not the metNoLep trigger
-	 // if HLT_FLAG is set to 0, namely no trigger required, the HLT_passed_flag is set to 1, which is equivalent to say tht the trigger selection 
+	 // if HLT_FLAG is set to 0, namely no trigger required, the HLT_passed_flag is set to 1, which is equivalent to say that the trigger selection 
 	 //is automatically passed (note that it's not part of the selecion if HLT_FLAG = 0)
        	 if ( recoLepFound_flag && (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
        	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
@@ -603,10 +604,10 @@ void zlljetsAna_new::loop(const char* configFileName)
 
        if ( HLT_FLAG ) {
           // see comment for the muon trigger above
-	 if (  (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
+	 if (  recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
 		 (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
 		 (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT)  )  HLT_passed_flag = 1; 	 
-	 else HLT_passed_flag = 0;   //if HLT is not passed, skip everything in loop 
+	 else HLT_passed_flag = 0;  
 
        } else HLT_passed_flag = 1; 
 
