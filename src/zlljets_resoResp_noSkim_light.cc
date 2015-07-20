@@ -282,14 +282,17 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    // the following are only for electrons
    selection lep2tightIdIso04C;
 
-   TVector3 metNoLepTV3;   // metNoLep 3D vector, TV3 is to make clear that it's a 3D vector and not a TLorentzVector
-   TVector3 ele;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
+   // TVector3 metNoLepTV3;   // metNoLep 3D vector, TV3 is to make clear that it's a 3D vector and not a TLorentzVector
+   // TVector3 ele; 
+   // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
    //TVector3 met, eleVectorSum;
 
    // the reason to use TVector3 instead of TVector2 (which would be faster) is that I need to compute dphi between metNoLep and the Z vector (TLorentVector).
    // To do that I use the TVector3::DeltaPhi(const TVector3&) method passing TLorentzVector::Vect() which returns the 3D vector from a Lorentz Vector.
    // there isn't a method giving just the transverse 2D vector (although I could do it myself) from a TLorentVector (but it does exist a TVector3::XYvector()). 
    // Maybe I will change because TVector3 is much slower than TVector2
+
+   TVector2 metNoLepTV, ele;
 
    TLorentzVector l1gen, l2gen, Zgen;     // gen level Z and l1,l2  (Z->(l1 l2)
    TLorentzVector l1reco, l2reco, Zreco;
@@ -320,13 +323,13 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    Float_t *ptr_nLep10V = NULL;   
 
    Float_t *ptr_metNoLepPt = NULL;       // only needed for muons, it will point to the branches with the metNoMu_pt, then metNoLepPt = *ptr_metNoLepPt (metNoLepPt defined below)
-   Float_t *ptr_metNoLepEta = NULL; 
+   //Float_t *ptr_metNoLepEta = NULL; 
    Float_t *ptr_metNoLepPhi = NULL;  
 
    Float_t nLepLoose = 0.0;               // this variable and the following should be an integer, but in Emanuele's trees they are float, so I keep them as such
    Float_t nLep10V = 0.0;
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
-   Double_t metNoLepEta = 0.0;
+   //Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
 
    strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
@@ -342,7 +345,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      ptr_nLepLoose = &nMu10V;                      // ask 2 muons
      ptr_nLep10V = &nEle10V;                         // veto on electrons
      ptr_metNoLepPt = &metNoMu_pt;               // for muons  get this variable from the tree 
-     ptr_metNoLepEta = &metNoMu_eta;               // for muons  get this variable from the tree 
+     //ptr_metNoLepEta = &metNoMu_eta;               // for muons  get this variable from the tree 
      ptr_metNoLepPhi = &metNoMu_phi;         // for muons  get this variable from the tree
 
      // for (Int_t i = 0; i < metCut.size(); i++) {
@@ -684,9 +687,10 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
        // else efficiencySelectionDef = 0;
 
        metNoLepPt = *ptr_metNoLepPt;       
-       metNoLepEta = *ptr_metNoLepEta; 
+       //metNoLepEta = *ptr_metNoLepEta; 
        metNoLepPhi = *ptr_metNoLepPhi; 
-       metNoLepTV3.SetPtEtaPhi(metNoLepPt,metNoLepEta,metNoLepPhi);   // will use this 3D vector below
+       //metNoLepTV3.SetPtEtaPhi(metNoLepPt,metNoLepEta,metNoLepPhi);   // will use this 3D vector below
+       metNoLepTV.SetMagPhi(metNoLepPt,metNoLepPhi);
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
 
@@ -699,16 +703,25 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
        }  // end of   if ( HLT_FLAG )
 
-       metNoLepTV3.SetPtEtaPhi(met_pt,met_eta,met_phi);
+       // metNoLepTV3.SetPtEtaPhi(met_pt,met_eta,met_phi);
+       // // summing just electrons from Z if found
+       // ele.SetPtEtaPhi(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex]);
+       // metNoLepTV3 += ele;
+       // ele.SetPtEtaPhi(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex]);
+       // metNoLepTV3 += ele;
+
+       metNoLepTV.SetMagPhi(met_pt,met_phi);
        // summing just electrons from Z if found
-       ele.SetPtEtaPhi(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex]);
-       metNoLepTV3 += ele;
-       ele.SetPtEtaPhi(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex]);
-       metNoLepTV3 += ele;
+       ele.SetMagPhi(LepGood_pt[firstIndex],LepGood_phi[firstIndex]);
+       metNoLepTV += ele;
+       ele.SetMagPhi(LepGood_pt[secondIndex],LepGood_phi[secondIndex]);
+       metNoLepTV += ele;
+
+       metNoLepPt = metNoLepTV.Mod();
 
        //metNoLepTV3 = met + eleVectorSum;  // metNoLep vector created summing real met vector and vector sum of all electrons (actually only those from Z)
        // for muons I would sum all the muons because in any case the analysis would require exactly 2 muons (for control sample) and no muons for the signal
-       metNoLepPt = metNoLepTV3.Pt();  // for electrons we define components by hand, for muons we used the variable in the tree to form the vector
+       //metNoLepPt = metNoLepTV3.Pt();  // for electrons we define components by hand, for muons we used the variable in the tree to form the vector
        //metNoLepEta = metNoLepTV3.Eta();  // not needed, I'll just use the TVector directly
        //metNoLepPhi = metNoLepTV3.Phi();  // not needed, I'll just use the TVector directly
 
@@ -823,7 +836,9 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 	 //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
 		
 	 //metNoLepTV3.SetPtEtaPhi((Double_t)metNoLepPt,(Double_t)metNoLepEta,(Double_t)metNoLepPhi);  // already initialized above
-	 Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
+	 //Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
+	 TVector3 Zreco3D = Zreco.Vect();
+	 Double_t dphiMetNoLepZ = metNoLepTV.DeltaPhi(Zreco3D.XYvector());
 
 	 Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);  // actually u_par is minus this quantity, but then I do u_par-ZpT instead of u_par+ZpT
 	 Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
