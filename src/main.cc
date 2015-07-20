@@ -510,17 +510,10 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // if (argc == 3 && (std::strcmp("axel",argv[2]) &&  std::strcmp("rerel",argv[2])) ) {
-
-  //   std::cout << "not valid option " << argv[2] <<std::endl;
-  //   exit(EXIT_FAILURE);
-
-  // }
-
   char configFileName[200];
   std::strcpy(configFileName,argv[1]);
 
-  Double_t muonOrElectron_PDGID;
+  Double_t lepton_PDGID;
   string treePath;
   string friendTreePath;
   string option = "";
@@ -541,13 +534,15 @@ int main(int argc, char* argv[]) {
 
 	 if (parameterName == "LEP_PDG_ID") {
 
-	   muonOrElectron_PDGID = (Int_t) value;
+	   lepton_PDGID = (Int_t) value;
 	   std::cout << "lepton_pdgID = " << value <<std::endl;
 
-	   if (fabs(muonOrElectron_PDGID) == 13) {
+	   if (fabs(lepton_PDGID) == 13) {
 	     std::cout << "Analysis of Z->mumu" << std::endl;
-	   } else if (fabs(muonOrElectron_PDGID) == 11) {
+	   } else if (fabs(lepton_PDGID) == 11) {
 	     std::cout << "Analysis of Z->ee" << std::endl;
+	   } else if (fabs(lepton_PDGID) == 12 || fabs(lepton_PDGID) == 14 || fabs(lepton_PDGID) == 16) {
+	     std::cout << "Analysis of Z->nunu" << std::endl;
 	   }
 
 	 }   
@@ -624,6 +619,11 @@ int main(int argc, char* argv[]) {
   } else if (!(std::strcmp("ana",option.c_str())) ) {
 
     zlljetsAna_new tree( chain );
+    tree.loop(configFileName);
+
+  } else if (!(std::strcmp("znunuMC",option.c_str())) ) {
+
+    znunujetsAna tree( chain );
     tree.loop(configFileName);
 
   } else {
