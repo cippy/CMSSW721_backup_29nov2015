@@ -286,6 +286,11 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    TVector3 ele;    // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
    //TVector3 met, eleVectorSum;
 
+   // the reason to use TVector3 instead of TVector2 (which would be faster) is that I need to compute dphi between metNoLep and the Z vector (TLorentVector).
+   // To do that I use the TVector3::DeltaPhi(const TVector3&) method passing TLorentzVector::Vect() which returns the 3D vector from a Lorentz Vector.
+   // there isn't a method giving just the transverse 2D vector (although I could do it myself) from a TLorentVector (but it does exist a TVector3::XYvector()). 
+   // Maybe I will change because TVector3 is much slower than TVector2
+
    TLorentzVector l1gen, l2gen, Zgen;     // gen level Z and l1,l2  (Z->(l1 l2)
    TLorentzVector l1reco, l2reco, Zreco;
 
@@ -412,7 +417,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    // mask tautaubkgInZll(Form("tau tau background in %s control sample",CONTROL_SAMPLE));
    // tautaubkgInZll.append(genTausC.get2ToId());
 
-   mask resoAndResponse;
+   mask resoAndResponse("selection for resolution and response");
    resoAndResponse.append(HLTlepC.get2ToId());
    resoAndResponse.append(oppChargeLeptonsC.get2ToId() + twoLepLooseC.get2ToId());
    
