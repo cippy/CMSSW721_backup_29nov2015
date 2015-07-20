@@ -16,7 +16,7 @@
 
 namespace myAnalyzerTEman {
 
-  class znunujetsAna : public edimarcoTree /*,public edimarcoTreeFriend*/ {
+  class znunujetsAna : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
   public:
 
     znunujetsAna(TTree *tree);
@@ -86,7 +86,7 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljetsAna_new : public edimarcoTree /*,public edimarcoTreeFriend*/ {
+  class zlljetsAna_new : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
   public:
 
     zlljetsAna_new(TTree *tree);
