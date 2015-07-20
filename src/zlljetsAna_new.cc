@@ -471,7 +471,7 @@ void zlljetsAna_new::loop(const char* configFileName)
    TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample in bins of met;#slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    TH1D *HzlljetsYieldsMetBinGenLep = new TH1D("HzlljetsYieldsMetBinGenLep",Form("yields of %s control sample (%s gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
    TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
-   // TH1D *HzvvEstimate = new TH1D("HzvvEstimate",Form("yields of Z->#nu#nu estimated as N(%s) * BR_ratio / (A*#varepsilon)",CONTROL_SAMPLE),nMetBins,metBinEdges);
+   //TH1D *HzvvEstimate = new TH1D("HzvvEstimate",Form("yields of Z->#nu#nu estimated as N(%s) * BR_ratio / (A*#varepsilon)",CONTROL_SAMPLE),nMetBins,metBinEdges);
 
    // TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);
    // TH1D *HZtoLLGenPt = new TH1D("HZtoLLGenPt","",101,0.,1010);
@@ -869,17 +869,18 @@ void zlljetsAna_new::loop(const char* configFileName)
   
    // }
    
-   // now get Z(inv) estimate as N_Zvv = N_Zll * R / (A*e), R being BR(Zvv)/BR(Zll) where l is either mu or e (R ~ 6)
-   // TH1D *H_BR_ratio = new TH1D("H_BR_ratio",Form("BR(Z#nu#nu/BR(%s)",CONTROL_SAMPLE),nMetBins,metBinEdges);
+   // now get Z(inv) estimate as N_Zvv = N_Zll * R , R being BR(Zvv)/BR(Zll) where l is either mu or e (R ~ 6)
+   // to get the true estimate, I need to divide by Axe, computed elsewhere
+   TH1D *H_BR_ratio = new TH1D("H_BR_ratio",Form("BR(Z#nu#nu/BR(%s)",CONTROL_SAMPLE),nMetBins,metBinEdges);
+   TH1D *HzvvEstimateNoAxe = new TH1D("HzvvEstimateNoAxe",Form("yields of Z->#nu#nu estimated as N(%s) * BR_ratio (missing division by A#times#epsilon))",CONTROL_SAMPLE),nMetBins,metBinEdges);
 
-   // for(Int_t i = 0; i <= nMetBins; i++) {
-   //   H_BR_ratio->SetBinContent(i,RATIO_BR_ZINV_ZLL);
-   //   H_BR_ratio->SetBinError(i,UNC_RATIO_BR_ZINV_ZLL);
-   // }
+   for(Int_t i = 0; i <= nMetBins; i++) {
+     H_BR_ratio->SetBinContent(i,RATIO_BR_ZINV_ZLL);
+     H_BR_ratio->SetBinError(i,UNC_RATIO_BR_ZINV_ZLL);
+   }
 
-   // HzvvEstimate->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio);
-   // HzvvEstimate->Divide(Hacceff);
-   // delete H_BR_ratio; //no need to save it
+   HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio);
+   delete H_BR_ratio; //no need to save it
 
    // // I add overflow bin's content in the last bin for all histograms where that is needed
    // // for those histogram filled with Divide() method, it's not done as long as it was already done on the histograms given as
