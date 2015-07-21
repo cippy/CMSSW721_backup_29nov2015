@@ -514,6 +514,7 @@ int main(int argc, char* argv[]) {
   std::strcpy(configFileName,argv[1]);
 
   Double_t lepton_PDGID;
+  Int_t isdata_flag;
   string treePath;
   string friendTreePath;
   string option = "";
@@ -545,7 +546,16 @@ int main(int argc, char* argv[]) {
 	     std::cout << "Analysis of Z->nunu" << std::endl;
 	   }
 
-	 }   
+	 } 
+
+	 if (parameterName == "ISDATA_FLAG") {
+
+	   isdata_flag = ISDATA_FLAG;
+
+	   if (isdata_flag == 0) std::cout << "Running on MonteCarlo" << std::endl;
+	   else std::cout << "Running on data" << std::endl;
+
+	 }
 
        } else if (parameterType == "STRING") {
 
@@ -619,7 +629,7 @@ int main(int argc, char* argv[]) {
   } else if (!(std::strcmp("ana",option.c_str())) ) {
 
     zlljetsAna_new tree( chain );
-    tree.loop(configFileName);
+    tree.loop(configFileName, isdata_flag);
 
   } else if (!(std::strcmp("znunuMC",option.c_str())) ) {
 
