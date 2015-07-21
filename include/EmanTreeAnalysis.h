@@ -93,7 +93,7 @@ namespace myAnalyzerTEman {
     zlljetsAna_new(TTree *tree);
     virtual ~zlljetsAna_new() { std::cout<<"~zlljetsAna_new() called"<<std::endl; }
   
-    void loop(const char* configFileName);
+    void loop(const char* configFileName, const Int_t ISDATA_FLAG);
 
   };
 
