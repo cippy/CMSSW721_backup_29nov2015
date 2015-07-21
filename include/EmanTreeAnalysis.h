@@ -13,10 +13,11 @@
 #include "edimarcoTree.h"
 //#include "edimarcoTreeFriend.h"
 #include "edimarcoTree_noSkim.h"
+#include "edimarcoTree_v2.h"
 
 namespace myAnalyzerTEman {
 
-  class znunujetsAna : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
+  class znunujetsAna : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     znunujetsAna(TTree *tree);
@@ -86,7 +87,7 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljetsAna_new : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
+  class zlljetsAna_new : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     zlljetsAna_new(TTree *tree);
@@ -96,7 +97,7 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljets_Axe_noSkim : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
+  class zlljets_Axe_noSkim : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     zlljets_Axe_noSkim(TTree *tree);
@@ -106,7 +107,7 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljets_Axe_noSkim_light : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
+  class zlljets_Axe_noSkim_light : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     // same as previous, but only computes acceptance and efficiency in order to be faster
@@ -117,7 +118,7 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljets_resoResp_noSkim_light : public edimarcoTree_noSkim /*,public edimarcoTreeFriend*/ {
+  class zlljets_resoResp_noSkim_light : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     // same as previous, but only computes acceptance and efficiency in order to be faster
