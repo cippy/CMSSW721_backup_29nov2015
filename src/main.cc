@@ -550,7 +550,7 @@ int main(int argc, char* argv[]) {
 
 	 if (parameterName == "ISDATA_FLAG") {
 
-	   isdata_flag = ISDATA_FLAG;
+	   isdata_flag = (Int_t) value;
 
 	   if (isdata_flag == 0) std::cout << "Running on MonteCarlo" << std::endl;
 	   else std::cout << "Running on data" << std::endl;
