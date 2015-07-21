@@ -153,6 +153,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // Int_t NVTXS;                           // # of points for study of u_par and u_perp vs # of reconstructed vertices nvtx
    // Int_t FIRST_NVTX;                    // starting number of vertices for met study   
    // Double_t METNOLEP_START;
+   string FILENAME_BASE;
 
    ifstream inputFile(configFileName);
 
@@ -179,7 +180,8 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        } else if (parameterType == "STRING") {
 	 
 	 inputFile >> parameterName >> name;
-	 cout << setw(20) << parameterName << "  " << left << name << endl;
+	 cout << right << setw(20) << parameterName << "  " << left << name << endl;
+	 if (parameterName == "FILENAME_BASE") FILENAME_BASE = name; 
 
        }
 
@@ -238,7 +240,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    Int_t nHTbins = (sizeof(HTbinEdges)/sizeof(Double_t)) - 1;
   
    // selections for monojet selection (it also includes veto on muons or electrons depending on the sample
-   selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
+   selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean30 >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
    selection jjdphiC("jjdphiC",Form("jjdphi < %1.1lf",J1J2DPHI),Form("only if njets = %i",NJETS));
    selection njetsC("njets","nJetClean30 <= 2");
    selection gammaLooseVetoC("gammaLooseVetoC","photons veto");
@@ -292,11 +294,12 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    Int_t htbin = -1;
    Int_t Z_index = -1;
 
+   strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
+   strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
+   strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
      
-     strcpy(ROOT_FNAME,"zmumujets_Axe_noSkim_light.root");
-     strcpy(TXT_FNAME,"zmumujets_Axe_noSkim_light.txt");
-     strcpy(TEX_FNAME,"zmumujets_Axe_noSkim_light.tex");
      strcpy(FLAVOUR,"mu");
      strcpy(LL_FLAVOUR,"mumu");
      strcpy(CONTROL_SAMPLE,"Z-->mumu");
@@ -318,9 +321,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
    } else if (fabs(LEP_PDG_ID) == 11) {   // if we have Z -> ee do different stuff...
 
-     strcpy(ROOT_FNAME,"zeejets_Axe_noSkim_light.root");
-     strcpy(TXT_FNAME,"zeejets_Axe_noSkim_light.txt");
-     strcpy(TEX_FNAME,"zeejets_Axe_noSkim_light.tex");
      strcpy(FLAVOUR,"ele");
      strcpy(LL_FLAVOUR,"ee");
      strcpy(CONTROL_SAMPLE,"Z-->ee");
@@ -344,8 +344,8 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
    }
                        
-   selection acceptanceC("acceptanceC","acceptance cuts");
-   selection efficiencyC("efficiencyC","efficiency cuts");
+   selection acceptanceC("acceptanceC","acceptance cuts");   // defined in the loop
+   selection efficiencyC("efficiencyC","efficiency cuts");   // defined in the loop
 
    selection::checkMaskLength();
    selection::printActiveSelections(cout);
@@ -359,7 +359,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    for ( Int_t i = 0; i < nMetBins; i++) {
      lep_acc_eff[i] = new mask;
      lep_acc_eff[i]->setName(Form("%s_acc_eff:  %3.0lf < met < %3.0lf",FLAVOUR,metBinEdges[i], metBinEdges[i+1]));
-     lep_acc_eff[i]->append(genLepC.get2ToId());
+     lep_acc_eff[i]->append(genLepC.get2ToId());       // to select only Z->ee or Z->mumu 
      lep_acc_eff[i]->append(maskMonoJetSelection);
      lep_acc_eff[i]->append(acceptanceC.get2ToId());
      lep_acc_eff[i]->append(efficiencyC.get2ToId());
@@ -395,11 +395,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    TH1D* HeffDivNnoW = new TH1D("HeffDivNnoW","",nMetBins,metBinEdges);
    TH1D* HacceffDivNnoW = new TH1D("HacceffDivNnoW","",nMetBins,metBinEdges);
 
-   TH1D *HmonoJetSel_noW_HTbin[nHTbins];;
-   TH1D *Hacc_noW_HTbin[nHTbins];
-   TH1D *Heff_noW_HTbin[nHTbins];
-   TH1D *Hacceff_noW_HTbin[nHTbins];
-
    TEfficiency *TE_EffFillW = new TEfficiency("TE_EffFillW","",nMetBins,metBinEdges);
    TEfficiency *TE_AccFillW = new TEfficiency("TE_AccFillW","",nMetBins,metBinEdges);
    TEfficiency *TE_AccEffFillW = new TEfficiency("TE_AccEffFillW","",nMetBins,metBinEdges);
@@ -407,6 +402,11 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    TE_EffFillW->SetUseWeightedEvents();
    TE_AccFillW->SetUseWeightedEvents();
    TE_AccEffFillW->SetUseWeightedEvents();
+
+   TH1D *HmonoJetSel_noW_HTbin[nHTbins];;
+   TH1D *Hacc_noW_HTbin[nHTbins];
+   TH1D *Heff_noW_HTbin[nHTbins];
+   TH1D *Hacceff_noW_HTbin[nHTbins];
 
    for (Int_t i = 0; i < nHTbins; i++) {
      HmonoJetSel_noW_HTbin[i] = new TH1D(Form("HmonoJetSel_noW_HTbin%3.0lfto%3.0lf",HTbinEdges[i],HTbinEdges[i+1]),"",nMetBins,metBinEdges);
@@ -539,6 +539,9 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      // end of eventMask building
      // now entering analysis in bins of met
+
+     // here I require exactly 2 loose leptons, so that the met computed summing all leptons reduces to met computed by only summing the Z to real met
+     // the rquirement of having 2 OS leptons is included in genLepFound_flag and recoLepFound_flag
 
      if ( genLepFound_flag && (nLepLoose == 2) && ((eventMask & maskMonoJetSelection) == maskMonoJetSelection) ) {
 
