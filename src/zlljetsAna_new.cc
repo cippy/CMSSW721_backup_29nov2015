@@ -506,11 +506,15 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // TH1D *HZtoLLPt_RecoGenRatio_MetBin[nMetBins];
    // TH1D *HZtoLLPt_RecoGenRatio_pdf_MetBin[nMetBins];
 
+   Int_t nBinInvMass = (Int_t ) (DILEPMASS_UP - DILEPMASS_LOW) / 2.;
+
    for (Int_t i = 0; i < nMetBins; i++) {
 
-     HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
-     HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
-     HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",30,DILEPMASS_LOW,DILEPMASS_UP);
+     HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+     if (!isData) {
+       HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+       HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+     }
      // HZtoLLRecoPt_MetBin[i] = new TH1D(Form("HZtoLLRecoPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
      // HZtoLLGenPt_MetBin[i] = new TH1D(Form("HZtoLLGenPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
      // HZtoLLPt_RecoGenRatio_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
@@ -581,7 +585,10 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // if (Cut(ientry) < 0) continue;   
 
      UInt_t eventMask = 0; 
-     Double_t newwgt = weight * LUMI;
+     Double_t newwgt = 0.0;
+
+     if (isData) newwgt = 1.0;
+     else newwgt = weight * LUMI;
 
      if (jentry%500000 == 0) cout << jentry << endl;
 
