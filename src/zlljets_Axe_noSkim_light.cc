@@ -540,7 +540,8 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      // end of eventMask building
      // now entering analysis in bins of met
 
-     // here I require exactly 2 loose leptons, so that the met computed summing all leptons reduces to met computed by only summing the Z to real met
+     // here I should not require exactly 2 loose leptons (I would to make sure the met computed summing all leptons reduces to met computed by only summing 
+     // the Z to real met) because I bias the initial number of events
      // the requirement of having 2 OS leptons is included in genLepFound_flag and recoLepFound_flag
 
      if ( genLepFound_flag && /*(nLepLoose == 2) && */ ((eventMask & maskMonoJetSelection) == maskMonoJetSelection) ) {
