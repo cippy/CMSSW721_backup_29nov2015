@@ -41,7 +41,7 @@ using namespace myAnalyzerTEman;
 
 #ifdef zlljetsAna_new_cxx
 
-zlljetsAna_new::zlljetsAna_new(TTree *tree) : edimarcoTree_noSkim(tree) {
+zlljetsAna_new::zlljetsAna_new(TTree *tree) : edimarcoTree_v2(tree) {
   //cout <<"check in constructor "<<endl;
   Init(tree);
 
@@ -49,7 +49,7 @@ zlljetsAna_new::zlljetsAna_new(TTree *tree) : edimarcoTree_noSkim(tree) {
 
 #endif
 
-void zlljetsAna_new::loop(const char* configFileName)
+void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 {
 
    if (fChain == 0) return;
@@ -64,6 +64,9 @@ void zlljetsAna_new::loop(const char* configFileName)
    fChain->SetBranchStatus("nGamma15V",1);  // # of photons passing loose selection for photon veto
    //fChain->SetBranchStatus("nMu20T",1);  // # of muons passing tight selection (pt > 20 + everything else)
    fChain->SetBranchStatus("nTauClean18V",1);
+
+   fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC 
+   fChain->SetBranchStatus("isData",1); 
 
    fChain->SetBranchStatus("dphijj",1);          // dphi between 1st and 2nd jet, 999 if second jet doesn't exist
    fChain->SetBranchStatus("jetclean1",1);      // 1 if jet is cleaned, 0 otherwise
@@ -88,14 +91,16 @@ void zlljetsAna_new::loop(const char* configFileName)
    //fChain->SetBranchStatus("m2l",1);  // m(ll)  (I can compute it myself, maybe it's better)
    fChain->SetBranchStatus("mZ1",1);  // best m(ll) SF/OS
 
-   fChain->SetBranchStatus("nGenPart",1);
-   fChain->SetBranchStatus("GenPart_pdgId",1);
-   fChain->SetBranchStatus("GenPart_motherId",1);
-   // fChain->SetBranchStatus("GenPart_pt",1);                   // for now I don't need them, so I comment them to speed things up
-   // fChain->SetBranchStatus("GenPart_eta",1);
-   // fChain->SetBranchStatus("GenPart_phi",1);
-   // fChain->SetBranchStatus("GenPart_mass",1);
-   // fChain->SetBranchStatus("GenPart_motherIndex",1);
+   if (!ISDATA_FLAG) {
+     fChain->SetBranchStatus("nGenPart",1);
+     fChain->SetBranchStatus("GenPart_pdgId",1);
+     fChain->SetBranchStatus("GenPart_motherId",1);
+     // fChain->SetBranchStatus("GenPart_pt",1);                   // for now I don't need them, so I comment them to speed things up
+     // fChain->SetBranchStatus("GenPart_eta",1);
+     // fChain->SetBranchStatus("GenPart_phi",1);
+     // fChain->SetBranchStatus("GenPart_mass",1);
+     // fChain->SetBranchStatus("GenPart_motherIndex",1);
+   }
 
    fChain->SetBranchStatus("met_pt",1);
    fChain->SetBranchStatus("met_eta",1);
@@ -292,9 +297,15 @@ void zlljetsAna_new::loop(const char* configFileName)
    Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
 
-   strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
-   strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
-   strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+   if (ISDATA_FLAG) {
+     strcpy(ROOT_FNAME,(FILENAME_BASE + "_DATA.root").c_str());
+     strcpy(TXT_FNAME,(FILENAME_BASE + "_DATA.txt").c_str());
+     strcpy(TEX_FNAME,(FILENAME_BASE + "_DATA.tex").c_str());
+   } else {
+     strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
+     strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
+     strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+   }
 
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
     
@@ -321,7 +332,7 @@ void zlljetsAna_new::loop(const char* configFileName)
      lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
-     genLepC.set("genMuonsC","muons generated");    
+     if (!isData) genLepC.set("genMuonsC","muons generated");    
      HLTlepC.set("HLTmuonC","HLT for muons");
      metNoLepStartC.set("metNoMuStartC",Form("metNoMu > %2.0lf",METNOLEP_START));
 
@@ -347,14 +358,15 @@ void zlljetsAna_new::loop(const char* configFileName)
      lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
      lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
-     genLepC.set("genElectronsC","electrons generated");     
+     if (!isData) genLepC.set("genElectronsC","electrons generated");     
      metNoLepStartC.set("metNoEleStartC",Form("metNoEle > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
 
    }
 
-   selection genTausC("genTausC","taus generated");                       
+   selection genTausC;       
+   if (!isData) genTausC.set("genTausC","taus generated");               
    // selection acceptanceC("acceptanceC","acceptance cuts");
    // selection efficiencyC("efficiencyC","efficiency cuts");
 
@@ -578,9 +590,12 @@ void zlljetsAna_new::loop(const char* configFileName)
      nLepLoose = *ptr_nLepLoose;          
      nLep10V = *ptr_nLep10V;
 
-     genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen);
-     genTauFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23); //tau pdgId = 15
-     if ( !(genLepFound_flag || genTauFound_flag) ) continue;   // skip events with leptons different from what is looked for (keep taus for bkg estimate)
+     if (!isData) {
+       genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen);
+       genTauFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23); //tau pdgId = 15
+       if ( !(genLepFound_flag || genTauFound_flag) ) continue;   // skip events with leptons different from what is looked for (keep taus for bkg estimate)
+     }
+
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);
      //if (!recoLepFound_flag) continue;
 
@@ -652,8 +667,10 @@ void zlljetsAna_new::loop(const char* configFileName)
 
      }
 
-     eventMask += genLepC.addToMask( genLepFound_flag );
-     eventMask += genTausC.addToMask( genTauFound_flag );  // tau pdg id = 15, Z pdg id = 23
+     if (!isData) {
+       eventMask += genLepC.addToMask( genLepFound_flag );
+       eventMask += genTausC.addToMask( genTauFound_flag );  // tau pdg id = 15, Z pdg id = 23
+     }
      eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));
      eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
      eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
@@ -682,8 +699,6 @@ void zlljetsAna_new::loop(const char* configFileName)
      }
 
      zlljetsControlSample.countEvents(eventMask,newwgt);
-     zlljetsControlSampleGenLep.countEvents(eventMask,newwgt);
-     tautaubkgInZll.countEvents(eventMask, newwgt);
 
      // filling histogram with yields and invariant mass at the end of the selection in bins of met
      if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {  
@@ -691,14 +706,21 @@ void zlljetsAna_new::loop(const char* configFileName)
        HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);    
      }
 
-     if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {
-       // this histogram holds the final yields in bins of MET
-       HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
-     }
+     if (!isData) {
 
-     if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-       // this histogram holds the final yields in bins of MET
-       HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+       zlljetsControlSampleGenLep.countEvents(eventMask,newwgt);
+       tautaubkgInZll.countEvents(eventMask, newwgt);
+
+       if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {
+	 // this histogram holds the final yields in bins of MET
+	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+       }
+
+       if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
+	 // this histogram holds the final yields in bins of MET
+	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+       }
+
      }
 
      if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
@@ -710,12 +732,16 @@ void zlljetsAna_new::loop(const char* configFileName)
 	 HinvMass[bin]->Fill(mZ1,newwgt);   
        }
 
-       if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {  
-	 HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
-       }
+       if (!isData) {
 
-       if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-	 HzlljetsInvMassMetBinGenTau[bin]->Fill(mZ1,newwgt);   
+	 if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {  
+	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
+	 }
+
+	 if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
+	   HzlljetsInvMassMetBinGenTau[bin]->Fill(mZ1,newwgt);   
+	 }
+
        }
      
      } 
@@ -825,17 +851,6 @@ void zlljetsAna_new::loop(const char* configFileName)
 
    // end of TGraphs
 
-   mySpaces(cout,2);
-   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
-   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
-   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
-   // for (Int_t i = 0; i < nMetBins; i++) {
-   //   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, lep_acc_eff[i] );
-   // }
-
-   mySpaces(cout,2);
-   myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
- 
    cout<<"creating file '"<<TXT_FNAME<<"' ..."<<endl;
    ofstream myfile(TXT_FNAME,ios::out);
 
@@ -845,13 +860,28 @@ void zlljetsAna_new::loop(const char* configFileName)
      exit(EXIT_FAILURE);
      
    }
-          
-   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
-   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
-   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
-   mySpaces(myfile,2);
-   myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
 
+   mySpaces(cout,2);
+   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
+   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
+
+   if (!isData) {
+     selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
+     selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
+     selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
+     selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
+   }
+
+   mySpaces(cout,2);
+   mySpaces(myfile,2);
+   if (!isData) {
+     myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
+     myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
+   } else {
+     myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBin, metBinEdges, nMetBins);
+     myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBin, metBinEdges, nMetBins);
+   }
+  
    // Int_t stepMonojetSelection_In_lepAccEff = lep_acc_eff[0]->whichStepHas(maskMonoJetSelection);
    // Int_t stepAcceptance_In_lepAccEff = lep_acc_eff[0]->whichStepHas(acceptanceC.get2ToId());
    // Int_t stepEfficiency_In_lepAccEff = lep_acc_eff[0]->whichStepHas(efficiencyC.get2ToId());
@@ -910,7 +940,7 @@ void zlljetsAna_new::loop(const char* configFileName)
      H_BR_ratio->SetBinError(i,UNC_RATIO_BR_ZINV_ZLL);
    }
 
-   HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio);
+   if (!isData) HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio);
    delete H_BR_ratio; //no need to save it
 
    // // I add overflow bin's content in the last bin for all histograms where that is needed
@@ -946,8 +976,10 @@ void zlljetsAna_new::loop(const char* configFileName)
      //makeTableTex(fp, LUMI, nTotalWeightedEvents, &mu_Acc_Eff, commentInTable);      
      commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
      makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample,commentInTable);
-     makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep,commentInTable);
-     makeTableTex(fp, LUMI, nTotalWeightedEvents, &tautaubkgInZll,commentInTable);
+     if (!isData) {
+       makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep,commentInTable);
+       makeTableTex(fp, LUMI, nTotalWeightedEvents, &tautaubkgInZll,commentInTable);
+     }
      fprintf(fp,"\\end{document}\n");      
      fclose(fp);
 
