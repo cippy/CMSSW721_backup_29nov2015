@@ -541,9 +541,9 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      // now entering analysis in bins of met
 
      // here I require exactly 2 loose leptons, so that the met computed summing all leptons reduces to met computed by only summing the Z to real met
-     // the rquirement of having 2 OS leptons is included in genLepFound_flag and recoLepFound_flag
+     // the requirement of having 2 OS leptons is included in genLepFound_flag and recoLepFound_flag
 
-     if ( genLepFound_flag && (nLepLoose == 2) && ((eventMask & maskMonoJetSelection) == maskMonoJetSelection) ) {
+     if ( genLepFound_flag && /*(nLepLoose == 2) && */ ((eventMask & maskMonoJetSelection) == maskMonoJetSelection) ) {
 
        HmonoJetSel_noW_HTbin[htbin]->Fill(metNoLepPt);
        HmonojetW->Fill(metNoLepPt,newwgt);
