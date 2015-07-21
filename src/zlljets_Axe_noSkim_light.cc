@@ -41,7 +41,7 @@ using namespace myAnalyzerTEman;
 
 #ifdef zlljets_Axe_noSkim_light_cxx
 
-zlljets_Axe_noSkim_light::zlljets_Axe_noSkim_light(TTree *tree) : edimarcoTree_noSkim(tree) {
+zlljets_Axe_noSkim_light::zlljets_Axe_noSkim_light(TTree *tree) : edimarcoTree_v2(tree) {
   //cout <<"check in constructor "<<endl;
   Init(tree);
 
@@ -93,7 +93,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // fChain->SetBranchStatus("genLep_eta",1);
    // fChain->SetBranchStatus("genLep_phi",1);
    fChain->SetBranchStatus("mZ1",1);  // best m(ll) SF/OS
-
+  
    fChain->SetBranchStatus("nGenPart",1);
    fChain->SetBranchStatus("GenPart_pdgId",1);
    fChain->SetBranchStatus("GenPart_motherId",1);
