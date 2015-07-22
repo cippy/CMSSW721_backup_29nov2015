@@ -118,12 +118,12 @@ namespace myAnalyzerTEman {
 
   };
 
-  class zlljets_resoResp_noSkim_light : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
+  class zlljets_resoResp : public edimarcoTree_v2 /*,public edimarcoTreeFriend*/ {
   public:
 
     // same as previous, but only computes acceptance and efficiency in order to be faster
-    zlljets_resoResp_noSkim_light(TTree *tree);
-    virtual ~zlljets_resoResp_noSkim_light() { std::cout<<"~zlljets_resoResp_noSkim_light() called"<<std::endl; }
+    zlljets_resoResp(TTree *tree);
+    virtual ~zlljets_resoResp() { std::cout<<"~zlljets_resoResp() called"<<std::endl; }
   
     void loop(const char* configFileName, const Int_t ISDATA_FLAG);
 

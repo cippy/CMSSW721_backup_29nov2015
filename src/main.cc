@@ -623,7 +623,7 @@ int main(int argc, char* argv[]) {
 
   } else if ( !(std::strcmp("rerel",option.c_str()))) {
 
-    zlljets_resoResp_noSkim_light tree( chain );
+    zlljets_resoResp tree( chain );
     tree.loop(configFileName, isdata_flag);
 
   } else if (!(std::strcmp("ana",option.c_str())) ) {
