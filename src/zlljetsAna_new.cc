@@ -65,8 +65,8 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //fChain->SetBranchStatus("nMu20T",1);  // # of muons passing tight selection (pt > 20 + everything else)
    fChain->SetBranchStatus("nTauClean18V",1);
 
-   fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC 
-   fChain->SetBranchStatus("isData",1); 
+   //fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC 
+   //fChain->SetBranchStatus("isData",1); 
 
    fChain->SetBranchStatus("dphijj",1);          // dphi between 1st and 2nd jet, 999 if second jet doesn't exist
    fChain->SetBranchStatus("jetclean1",1);      // 1 if jet is cleaned, 0 otherwise
@@ -107,8 +107,8 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    fChain->SetBranchStatus("met_phi",1);
 
    fChain->SetBranchStatus("metNoMu_pt",1);
-   fChain->SetBranchStatus("metNoMu_eta",1);
-   fChain->SetBranchStatus("metNoMu_phi",1);
+   // fChain->SetBranchStatus("metNoMu_eta",1);
+   // fChain->SetBranchStatus("metNoMu_phi",1);
 
 //fChain->SetBranchStatus("nVert",1);  // number of good vertices
 
@@ -288,14 +288,15 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Float_t *ptr_nLep10V = NULL;   
 
    Float_t *ptr_metNoLepPt = NULL;       // only needed for muons, it will point to the branches with the metNoMu_pt, then metNoLepPt = *ptr_metNoLepPt (metNoLepPt defined below)
-   Float_t *ptr_metNoLepEta = NULL; 
-   Float_t *ptr_metNoLepPhi = NULL;  
+   // Float_t *ptr_metNoLepEta = NULL; 
+   // Float_t *ptr_metNoLepPhi = NULL; 
+   
 
    Float_t nLepLoose = 0.0;               // this variable and the following should be an integer, but in Emanuele's trees they are float, so I keep them as such
    Float_t nLep10V = 0.0;
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
-   Double_t metNoLepEta = 0.0;
-   Double_t metNoLepPhi = 0.0;   // same story as above
+   // Double_t metNoLepEta = 0.0;
+   // Double_t metNoLepPhi = 0.0;   // same story as above
 
    if (ISDATA_FLAG) {
      strcpy(ROOT_FNAME,(FILENAME_BASE + "_DATA.root").c_str());
@@ -316,8 +317,8 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      ptr_nLepLoose = &nMu10V;                      // ask 2 muons
      ptr_nLep10V = &nEle10V;                         // veto on electrons
      ptr_metNoLepPt = &metNoMu_pt;               // for muons  get this variable from the tree 
-     ptr_metNoLepEta = &metNoMu_eta;               // for muons  get this variable from the tree 
-     ptr_metNoLepPhi = &metNoMu_phi;         // for muons  get this variable from the tree
+     // ptr_metNoLepEta = &metNoMu_eta;          // for muons  get this variable from the tree 
+     // ptr_metNoLepPhi = &metNoMu_phi;          // for muons  get this variable from the tree
 
      // for (Int_t i = 0; i < metCut.size(); i++) {
      //   metNoLepC[i].set(Form("metNoMuC[%i]",i),Form("metNoMu > %3.0lf",metCut.at(i)));
@@ -332,7 +333,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
-     if (!isData) genLepC.set("genMuonsC","muons generated");    
+     if (!ISDATA_FLAG) genLepC.set("genMuonsC","muons generated");    
      HLTlepC.set("HLTmuonC","HLT for muons");
      metNoLepStartC.set("metNoMuStartC",Form("metNoMu > %2.0lf",METNOLEP_START));
 
@@ -358,7 +359,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
      lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
-     if (!isData) genLepC.set("genElectronsC","electrons generated");     
+     if (!ISDATA_FLAG) genLepC.set("genElectronsC","electrons generated");     
      metNoLepStartC.set("metNoEleStartC",Form("metNoEle > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
@@ -366,7 +367,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    }
 
    selection genTausC;       
-   if (!isData) genTausC.set("genTausC","taus generated");               
+   if (!ISDATA_FLAG) genTausC.set("genTausC","taus generated");               
    // selection acceptanceC("acceptanceC","acceptance cuts");
    // selection efficiencyC("efficiencyC","efficiency cuts");
 
@@ -406,7 +407,8 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    if (fabs(LEP_PDG_ID) == 13) {  
 
-     maskTightTag = lep1tightIdIso04C.get2ToId();  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
+     maskTightTag = lep1tightIdIso04C.get2ToId() + lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId();  
+     // actually for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
    
      zlljetsControlSample.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
      zlljetsControlSample.append(twoLeptonsC.get2ToId());
@@ -498,7 +500,11 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // TH1D* Heff = new TH1D("Heff","",nMetBins,metBinEdges);
    // TH1D* Hacceff = new TH1D("Hacceff","",nMetBins,metBinEdges);
 
-   TH1D *HinvMass[nMetBins];
+   Int_t nBinInvMass = (Int_t) (DILEPMASS_UP - DILEPMASS_LOW) / 2.;
+
+   TH1D *HinvMass = new TH1D("HinvMass","",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+   TH1D *HinvMassGenLep = new TH1D("HinvMassGenLep","",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+   TH1D *HinvMassMetBin[nMetBins];
    TH1D *HzlljetsInvMassMetBinGenLep[nMetBins];
    TH1D *HzlljetsInvMassMetBinGenTau[nMetBins];
    // TH1D *HZtoLLRecoPt_MetBin[nMetBins];
@@ -506,12 +512,10 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // TH1D *HZtoLLPt_RecoGenRatio_MetBin[nMetBins];
    // TH1D *HZtoLLPt_RecoGenRatio_pdf_MetBin[nMetBins];
 
-   Int_t nBinInvMass = (Int_t ) (DILEPMASS_UP - DILEPMASS_LOW) / 2.;
-
    for (Int_t i = 0; i < nMetBins; i++) {
 
-     HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
-     if (!isData) {
+     HinvMassMetBin[i] = new TH1D(Form("HinvMassMetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
+     if (!ISDATA_FLAG) {
        HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
        HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",nBinInvMass,DILEPMASS_LOW,DILEPMASS_UP);
      }
@@ -587,7 +591,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      UInt_t eventMask = 0; 
      Double_t newwgt = 0.0;
 
-     if (isData) newwgt = 1.0;
+     if (ISDATA_FLAG) newwgt = 1.0;
      else newwgt = weight * LUMI;
 
      if (jentry%500000 == 0) cout << jentry << endl;
@@ -597,7 +601,9 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      nLepLoose = *ptr_nLepLoose;          
      nLep10V = *ptr_nLep10V;
 
-     if (!isData) {
+     //cout << " **********   check *************** " << endl;
+
+     if (!ISDATA_FLAG) {
        genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen);
        genTauFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23); //tau pdgId = 15
        if ( !(genLepFound_flag || genTauFound_flag) ) continue;   // skip events with leptons different from what is looked for (keep taus for bkg estimate)
@@ -620,8 +626,8 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        }  else HLT_passed_flag = 1; // end of   if ( HLT_FLAG )
 
        metNoLepPt = *ptr_metNoLepPt;
-       metNoLepEta = *ptr_metNoLepEta;          
-       metNoLepPhi = *ptr_metNoLepPhi;    
+       //metNoLepEta = *ptr_metNoLepEta;          
+       //metNoLepPhi = *ptr_metNoLepPhi;    
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
 
@@ -674,7 +680,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
      }
 
-     if (!isData) {
+     if (!ISDATA_FLAG) {
        eventMask += genLepC.addToMask( genLepFound_flag );
        eventMask += genTausC.addToMask( genTauFound_flag );  // tau pdg id = 15, Z pdg id = 23
      }
@@ -710,10 +716,11 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // filling histogram with yields and invariant mass at the end of the selection in bins of met
      if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {  
        // this histogram holds the final yields in bins of MET
-       HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);    
+       HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);
+       HinvMass->Fill(mZ1,newwgt);
      }
 
-     if (!isData) {
+     if (!ISDATA_FLAG) {
 
        zlljetsControlSampleGenLep.countEvents(eventMask,newwgt);
        tautaubkgInZll.countEvents(eventMask, newwgt);
@@ -721,6 +728,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+	 HinvMassGenLep->Fill(mZ1,newwgt);
        }
 
        if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
@@ -736,10 +744,10 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        
        if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
 	 // this histogram holds the invariant mass distribution (one for each met bin)
-	 HinvMass[bin]->Fill(mZ1,newwgt);   
+	 HinvMassMetBin[bin]->Fill(mZ1,newwgt);   
        }
 
-       if (!isData) {
+       if (!ISDATA_FLAG) {
 
 	 if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {  
 	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
@@ -872,7 +880,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
 
-   if (!isData) {
+   if (!ISDATA_FLAG) {
      selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
      selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
      selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
@@ -881,7 +889,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    mySpaces(cout,2);
    mySpaces(myfile,2);
-   if (!isData) {
+   if (!ISDATA_FLAG) {
      myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
      myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
    } else {
@@ -947,8 +955,12 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      H_BR_ratio->SetBinError(i,UNC_RATIO_BR_ZINV_ZLL);
    }
 
-   if (!isData) HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio);
-   delete H_BR_ratio; //no need to save it
+   if (!ISDATA_FLAG) {
+     if ( !HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio) ) {
+       cout << "Error in 'HzvvEstimateNoAxe->Multiply(HzlljetsYieldsMetBinGenLep,H_BR_ratio)'" << endl;
+     }
+   }
+   // delete H_BR_ratio; //no need to save it
 
    // // I add overflow bin's content in the last bin for all histograms where that is needed
    // // for those histogram filled with Divide() method, it's not done as long as it was already done on the histograms given as
@@ -983,7 +995,7 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      //makeTableTex(fp, LUMI, nTotalWeightedEvents, &mu_Acc_Eff, commentInTable);      
      commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
      makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample,commentInTable);
-     if (!isData) {
+     if (!ISDATA_FLAG) {
        makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep,commentInTable);
        makeTableTex(fp, LUMI, nTotalWeightedEvents, &tautaubkgInZll,commentInTable);
      }
