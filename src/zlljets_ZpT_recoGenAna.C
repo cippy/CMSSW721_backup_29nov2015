@@ -139,7 +139,6 @@ void zlljets_ZpT_recoGenAna(const string fmumuName = "zmumujets_resoResp_noSkim_
     HZtoLLPt_RecoGenRatio_pdf_inRange[j]->SetStats(kFALSE);
     HZtoLLPt_RecoGenRatio_pdf_inRange[j]->SetLineColor(histColor[j*2]);
     
-
   }
 
   TPad *subpad1 = NULL;  // will use it to access specific subpad in canvas
@@ -163,6 +162,7 @@ void zlljets_ZpT_recoGenAna(const string fmumuName = "zmumujets_resoResp_noSkim_
   //hZpTreco[0]->GetXaxis()->SetLabelSize(0.04);
   hZpTreco[0]->GetYaxis()->SetTitle("# events");
   hZpTreco[0]->GetYaxis()->SetTitleSize(0.04);
+  hZpTreco[0]->GetYaxis()->SetLabelSize(0.04);
   hZpTreco[0]->GetYaxis()->CenterTitle();
   //hZpTreco[0]->GetYaxis()->SetLabelSize(0.04);
   hZpTreco[0]->Draw("HE");
@@ -178,9 +178,10 @@ void zlljets_ZpT_recoGenAna(const string fmumuName = "zmumujets_resoResp_noSkim_
   hZpTrecoGenRatio[0]->GetXaxis()->SetTitle("Z_{pT}[GeV]");
   hZpTrecoGenRatio[0]->GetXaxis()->SetTitleSize(0.07);
   hZpTrecoGenRatio[0]->GetXaxis()->SetTitleOffset(1.2);
-  hZpTrecoGenRatio[0]->GetYaxis()->SetLabelSize(0.08);
+  hZpTrecoGenRatio[0]->GetYaxis()->SetLabelSize(0.07);
   hZpTrecoGenRatio[0]->GetYaxis()->SetTitle("reco/gen ZpT");
-  hZpTrecoGenRatio[0]->GetYaxis()->SetTitleSize(0.1);
+  hZpTrecoGenRatio[0]->GetYaxis()->SetTitleSize(0.07);
+  hZpTrecoGenRatio[0]->GetYaxis()->SetTitleOffset(0.5);
   hZpTrecoGenRatio[0]->GetYaxis()->CenterTitle();
   hZpTrecoGenRatio[0]->Draw("E");
   hZpTrecoGenRatio[0]->SetMarkerStyle(7);  //medium dot
@@ -207,6 +208,7 @@ void zlljets_ZpT_recoGenAna(const string fmumuName = "zmumujets_resoResp_noSkim_
   //hZpTreco[1]->GetXaxis()->SetLabelSize(0.04);
   hZpTreco[1]->GetYaxis()->SetTitle("# events");
   hZpTreco[1]->GetYaxis()->SetTitleSize(0.04);
+  hZpTreco[1]->GetYaxis()->SetLabelSize(0.04);
   hZpTreco[1]->GetYaxis()->CenterTitle();
   //hZpTreco[1]->GetYaxis()->SetLabelSize(0.04);
   hZpTreco[1]->Draw("HE");
@@ -222,9 +224,10 @@ void zlljets_ZpT_recoGenAna(const string fmumuName = "zmumujets_resoResp_noSkim_
   hZpTrecoGenRatio[1]->GetXaxis()->SetTitle("Z_{pT}[GeV]");
   hZpTrecoGenRatio[1]->GetXaxis()->SetTitleSize(0.07);
   hZpTrecoGenRatio[1]->GetXaxis()->SetTitleOffset(1.2);
-  hZpTrecoGenRatio[1]->GetYaxis()->SetLabelSize(0.08);
+  hZpTrecoGenRatio[1]->GetYaxis()->SetLabelSize(0.07);
   hZpTrecoGenRatio[1]->GetYaxis()->SetTitle("reco/gen ZpT");
-  hZpTrecoGenRatio[1]->GetYaxis()->SetTitleSize(0.1);
+  hZpTrecoGenRatio[1]->GetYaxis()->SetTitleOffset(0.5);
+  hZpTrecoGenRatio[1]->GetYaxis()->SetTitleSize(0.07);
   hZpTrecoGenRatio[1]->GetYaxis()->CenterTitle();
   hZpTrecoGenRatio[1]->Draw("E");
   hZpTrecoGenRatio[1]->SetMarkerStyle(7);  //medium dot
