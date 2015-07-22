@@ -112,9 +112,9 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 //fChain->SetBranchStatus("nVert",1);  // number of good vertices
 
-   char ROOT_FNAME[50];
-   char TXT_FNAME[50];
-   char TEX_FNAME[50];
+   char ROOT_FNAME[100];
+   char TXT_FNAME[100];
+   char TEX_FNAME[100];
    char FLAVOUR[10];                   // e.g. "ele", "mu"
    char LL_FLAVOUR[10];             // e.g. "ee", "mumu"
    char CONTROL_SAMPLE[10];   // e.g. "Z-->ee"
