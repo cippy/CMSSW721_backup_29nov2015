@@ -125,7 +125,7 @@ namespace myAnalyzerTEman {
     zlljets_resoResp_noSkim_light(TTree *tree);
     virtual ~zlljets_resoResp_noSkim_light() { std::cout<<"~zlljets_resoResp_noSkim_light() called"<<std::endl; }
   
-    void loop(const char* configFileName);
+    void loop(const char* configFileName, const Int_t ISDATA_FLAG);
 
   };
 
