@@ -593,6 +593,49 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      
    }
 
+   //opening inputFile named configFileName again to save content in myfile named TXT_FNAME
+
+   inputFile.open(configFileName);
+
+   if (inputFile.is_open()) {
+     
+     mySpaces(myfile,2);
+     cout << "Saving content of " << configFileName << " file in "<< TXT_FNAME << endl;
+     myfile << "Content of " << configFileName << endl;
+     mySpaces(myfile,1);
+
+     Double_t value;
+     string name;
+     string parameterName;
+     string parameterType;
+
+     while (inputFile >> parameterType ) {
+
+       if (parameterType == "NUMBER") {
+
+	 inputFile >> parameterName >> value;
+	 myfile << setw(20) << parameterName << setw(7) << value << endl;
+
+       } else if (parameterType == "STRING") {
+	 
+	 inputFile >> parameterName >> name;
+	 myfile << right << setw(20) << parameterName << "  " << left << name << endl;
+
+       }
+
+     }
+     
+     inputFile.close();
+                                                                                                                         
+   } else {
+
+     cout << "Error: could not open file " << configFileName << " to save content in "<< TXT_FNAME << endl;
+     exit(EXIT_FAILURE);
+
+   }
+
+   mySpaces(myfile,3);
+
    TH1D *HmonoJetSelSumHTbin = new TH1D("HmonoJetSelSumHTbin","",nMetBins,metBinEdges);
    TH1D *HaccSumHTbin = new TH1D("HaccSumHTbin","",nMetBins,metBinEdges);
    TH1D *HeffSumHTbin = new TH1D("HeffSumHTbin","",nMetBins,metBinEdges);

@@ -669,8 +669,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName, const Int_t
      nLepLoose = *ptr_nLepLoose;          
      nLep10V = *ptr_nLep10V;
 
-     Double_t ZgenMass; = Zgen.Mag(); 
-     Double_t ZtoLLGenPt; = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+     Double_t ZgenMass; 
+     Double_t ZtoLLGenPt;    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
 
      if (!ISDATA_FLAG) {
 
@@ -849,7 +849,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName, const Int_t
 	     if (ZtoLLGenPt != 0) {
 
 	       HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-	       if (ZtoLLRecoPT > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	       if (ZtoLLRecoPt > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 
 	     }
 
@@ -1115,7 +1115,49 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName, const Int_t
      exit(EXIT_FAILURE);
      
    }
-          
+
+   //opening inputFile named configFileName again to save content in myfile named TXT_FNAME
+
+   inputFile.open(configFileName);
+
+   if (inputFile.is_open()) {
+     
+     mySpaces(myfile,2);
+     cout << "Saving content of " << configFileName << " file in "<< TXT_FNAME << endl;
+     myfile << "Content of " << configFileName << endl;
+     mySpaces(myfile,1);
+
+     Double_t value;
+     string name;
+     string parameterName;
+     string parameterType;
+
+     while (inputFile >> parameterType ) {
+
+       if (parameterType == "NUMBER") {
+
+	 inputFile >> parameterName >> value;
+	 myfile << setw(20) << parameterName << setw(7) << value << endl;
+
+       } else if (parameterType == "STRING") {
+	 
+	 inputFile >> parameterName >> name;
+	 myfile << right << setw(20) << parameterName << "  " << left << name << endl;
+
+       }
+
+     }
+     
+     inputFile.close();
+                                                                                                                         
+   } else {
+
+     cout << "Error: could not open file " << configFileName << " to save content in "<< TXT_FNAME << endl;
+     exit(EXIT_FAILURE);
+
+   }
+
+   mySpaces(myfile,3);
    //selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
    //selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &tautaubkgInZll);

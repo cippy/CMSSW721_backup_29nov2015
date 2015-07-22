@@ -876,6 +876,49 @@ void zlljetsAna_new::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      
    }
 
+   //opening inputFile named configFileName again to save content in myfile named TXT_FNAME
+
+   inputFile.open(configFileName);
+
+   if (inputFile.is_open()) {
+     
+     mySpaces(myfile,2);
+     cout << "Saving content of " << configFileName << " file in "<< TXT_FNAME << endl;
+     myfile << "Content of " << configFileName << endl;
+     mySpaces(myfile,1);
+
+     Double_t value;
+     string name;
+     string parameterName;
+     string parameterType;
+
+     while (inputFile >> parameterType ) {
+
+       if (parameterType == "NUMBER") {
+
+	 inputFile >> parameterName >> value;
+	 myfile << setw(20) << parameterName << setw(7) << value << endl;
+
+       } else if (parameterType == "STRING") {
+	 
+	 inputFile >> parameterName >> name;
+	 myfile << right << setw(20) << parameterName << "  " << left << name << endl;
+
+       }
+
+     }
+     
+     inputFile.close();
+                                                                                                                         
+   } else {
+
+     cout << "Error: could not open file " << configFileName << " to save content in "<< TXT_FNAME << endl;
+     exit(EXIT_FAILURE);
+
+   }
+
+   mySpaces(myfile,3);
+
    mySpaces(cout,2);
    selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
