@@ -41,7 +41,7 @@ using namespace myAnalyzerTEman;
 
 #ifdef zlljets_resoResp_noSkim_light_cxx
 
-zlljets_resoResp_noSkim_light::zlljets_resoResp_noSkim_light(TTree *tree) : edimarcoTree_noSkim(tree) {
+zlljets_resoResp_noSkim_light::zlljets_resoResp_noSkim_light(TTree *tree) : edimarcoTree_v2(tree) {
   //cout <<"check in constructor "<<endl;
   Init(tree);
 
@@ -49,7 +49,7 @@ zlljets_resoResp_noSkim_light::zlljets_resoResp_noSkim_light(TTree *tree) : edim
 
 #endif
 
-void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
+void zlljets_resoResp_noSkim_light::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 {
 
    if (fChain == 0) return;
@@ -94,24 +94,27 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    // fChain->SetBranchStatus("genLep_phi",1);
    fChain->SetBranchStatus("mZ1",1);  // best m(ll) SF/OS
 
-   fChain->SetBranchStatus("nGenPart",1);
-   fChain->SetBranchStatus("GenPart_pdgId",1);
-   fChain->SetBranchStatus("GenPart_motherId",1);
-   fChain->SetBranchStatus("GenPart_pt",1);
-   fChain->SetBranchStatus("GenPart_eta",1);
-   fChain->SetBranchStatus("GenPart_phi",1);
-   fChain->SetBranchStatus("GenPart_mass",1);
-   fChain->SetBranchStatus("GenPart_motherIndex",1);
+   if (!ISDATA_FLAG) {
+     fChain->SetBranchStatus("nGenPart",1);
+     fChain->SetBranchStatus("GenPart_pdgId",1);
+     fChain->SetBranchStatus("GenPart_motherId",1);
+     fChain->SetBranchStatus("GenPart_pt",1);
+     fChain->SetBranchStatus("GenPart_eta",1);
+     fChain->SetBranchStatus("GenPart_phi",1);
+     fChain->SetBranchStatus("GenPart_mass",1);
+     fChain->SetBranchStatus("GenPart_motherIndex",1);
+   }
 
    fChain->SetBranchStatus("met_pt",1);
-   fChain->SetBranchStatus("met_eta",1);
+   //fChain->SetBranchStatus("met_eta",1);
    fChain->SetBranchStatus("met_phi",1);
 
    fChain->SetBranchStatus("metNoMu_pt",1);
-   fChain->SetBranchStatus("metNoMu_eta",1);
+   //fChain->SetBranchStatus("metNoMu_eta",1);
    fChain->SetBranchStatus("metNoMu_phi",1);
 
    fChain->SetBranchStatus("nVert",1);  // number of good vertices
+   fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC 
 
    char ROOT_FNAME[50];
    char TXT_FNAME[50];
@@ -332,9 +335,15 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    //Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
 
-   strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
-   strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
-   strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+   if (ISDATA_FLAG) {
+     strcpy(ROOT_FNAME,(FILENAME_BASE + "_DATA.root").c_str());
+     strcpy(TXT_FNAME,(FILENAME_BASE + "_DATA.txt").c_str());
+     strcpy(TEX_FNAME,(FILENAME_BASE + "_DATA.tex").c_str());
+   } else {
+     strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
+     strcpy(TXT_FNAME,(FILENAME_BASE + ".txt").c_str());
+     strcpy(TEX_FNAME,(FILENAME_BASE + ".tex").c_str());
+   }
 
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
      
@@ -361,7 +370,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
-     genLepC.set("genMuonsC","muons generated");     
+      if (!ISDATA_FLAG) genLepC.set("genMuonsC","muons generated");     
      metNoLepStartC.set("metNoMu200C",Form("metNoMu > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTmuonC","HLT for muons");
      lep2tightIdIso04C.set("mu2tightIdIso04C","trailing muon tight","tight ID + relIso04 (as Emanuele)");
@@ -389,7 +398,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
      lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
-     genLepC.set("genElectronsC","electrons generated");     
+     if (!ISDATA_FLAG) genLepC.set("genElectronsC","electrons generated");     
      metNoLepStartC.set("metNoEle200C",Form("metNoEle > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
@@ -413,8 +422,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
    //mask zlljetsControlSample(Form("%s control sample with selection flow as Emanuele's",CONTROL_SAMPLE));
 
-   mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen ) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
-   zlljetsControlSampleGenLep.append(genLepC.get2ToId());
+   mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen if MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
+   if (!ISDATA_FLAG) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
    zlljetsControlSampleGenLep.append(HLTlepC.get2ToId());
 
    // mask tautaubkgInZll(Form("tau tau background in %s control sample",CONTROL_SAMPLE));
@@ -442,7 +451,7 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
    if (fabs(LEP_PDG_ID) == 13) {  
 
-     maskTightTag = lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId();  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
+     maskTightTag = lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId() + lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId();  ;  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
    
      // zlljetsControlSample.append(metNoLepStartC.get2ToId());
      // zlljetsControlSample.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
@@ -536,15 +545,21 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    //Int_t Hcolor[] = {1,2,3,4,5,6,7,8,9,12,18,30,38,41,42,46,47,49};       
 
    //TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample in bins of met;#slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
-   TH1D *HzlljetsYieldsMetBinGenLep = new TH1D("HzlljetsYieldsMetBinGenLep",Form("yields of %s control sample (%s gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
+   TH1D *HzlljetsYieldsMetBinGenLep = new TH1D("HzlljetsYieldsMetBinGenLep",Form("yields of %s control sample (%s gen if MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
    //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    
    TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);
-   TH1D *HZtoLLGenPt = new TH1D("HZtoLLGenPt","",101,0.,1010);
-   // this is the histogram with reco/gen
-   TH1D *HZtoLLPt_RecoGenRatio = new TH1D("HZtoLLPt_RecoGenRatio","",101,0.,1010.);
-   // histogram of reco/gen distribution function
-   TH1D *HZtoLLPt_RecoGenRatio_pdf = new TH1D("HZtoLLPt_RecoGenRatio_pdf","",100,0.5,1.5);
+   TH1D *HZtoLLGenPt ;
+   TH1D *HZtoLLPt_RecoGenRatio;                    // this is the histogram with reco/gen
+   TH1D *HZtoLLPt_RecoGenRatio_pdf;             // histogram of reco/gen distribution function
+   TH1D *HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf;     
+
+   if (!ISDATA_FLAG) {
+     HZtoLLGenPt = new TH1D("HZtoLLGenPt","",101,0.,1010);
+     HZtoLLPt_RecoGenRatio = new TH1D("HZtoLLPt_RecoGenRatio","",101,0.,1010.);
+     HZtoLLPt_RecoGenRatio_pdf = new TH1D("HZtoLLPt_RecoGenRatio_pdf","",100,0.5,1.5);
+     HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf = new TH1D("HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf","",100,0.5,1.5);
+   }
 
    // TH1D* Hacc = new TH1D("Hacc","",nMetBins,metBinEdges);
    // TH1D* Heff = new TH1D("Heff","",nMetBins,metBinEdges);
@@ -568,9 +583,12 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
      //HzlljetsInvMassMetBinGenTau[i] = new TH1D(Form("HzlljetsInvMassMetBinGenTau_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
      HZtoLLRecoPt_MetBin[i] = new TH1D(Form("HZtoLLRecoPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
-     HZtoLLGenPt_MetBin[i] = new TH1D(Form("HZtoLLGenPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
-     HZtoLLPt_RecoGenRatio_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
-     HZtoLLPt_RecoGenRatio_pdf_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_pdf_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",100,0.5,1.5);
+
+     if (!ISDATA_FLAG) {
+       HZtoLLGenPt_MetBin[i] = new TH1D(Form("HZtoLLGenPt_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
+       HZtoLLPt_RecoGenRatio_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",101,0.,1010.);
+       HZtoLLPt_RecoGenRatio_pdf_MetBin[i] = new TH1D(Form("HZtoLLPt_RecoGenRatio_pdf_MetBin_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",100,0.5,1.5);
+     }
 
    } 
 
@@ -651,19 +669,27 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      nLepLoose = *ptr_nLepLoose;          
      nLep10V = *ptr_nLep10V;
 
-     // Z_PDGID = 23   
-     genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
-     if (!genLepFound_flag) continue;
+     Double_t ZgenMass; = Zgen.Mag(); 
+     Double_t ZtoLLGenPt; = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+
+     if (!ISDATA_FLAG) {
+
+       genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
+       if (!genLepFound_flag) continue;
+
+       eventMask += genLepC.addToMask( genLepFound_flag );
+       l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
+       l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
+       Zgen = l1gen + l2gen;
+       Z_index = GenPart_motherIndex[firstIndexGen];   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);  
+       ZgenMass = Zgen.Mag(); 
+       ZtoLLGenPt = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+
+     }
+
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);  
-     if (!recoLepFound_flag) continue;
- 
-     l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
-     l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
-     Zgen = l1gen + l2gen;
-     Double_t ZgenMass = Zgen.Mag(); 
-     Double_t ZtoLLGenPt = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
-     Z_index = GenPart_motherIndex[firstIndexGen];   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);  
-     
+     if (!recoLepFound_flag) continue;     
+
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
      Zreco = l1reco + l2reco;
@@ -738,8 +764,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 
      // beginning of eventMask building
 
-     eventMask += genLepC.addToMask( genLepFound_flag );
-     //eventMask += genTausC.addToMask( myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23) );  // tau pdg id = 15, Z pdg id = 23 
+     
+     // genLepC added to mask above if ISDATA_FLAG == false (in order not to repeat here the check 
 
      eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));  //could skip cut on eta
      eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
@@ -794,33 +820,42 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
 
-	 //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
-	 // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
-	 // now we require a DeltaR cut between them to assess that lreco comes from lgen
-	 // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
+	 if (!ISDATA_FLAG) {
+
+	   //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+	   // now we require a DeltaR cut between them to assess that lreco comes from lgen
+	   // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
 	   
-	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
-	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+	   Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+	   Double_t DeltaR_lreco_lgen_pair2 = 0.0;
 
-	 if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+	   if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
 
-	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
-	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
 
-	 } else {
+	   } else {
 	    
-	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
-	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
 
-	 }
+	   }
 
-	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
+	   if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
 	     
-	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
-	   HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
-	   if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	     HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
+	     HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
+	     if (ZtoLLGenPt != 0) {
 
-	 }	 
+	       HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	       if (ZtoLLRecoPT > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+
+	     }
+
+	   }
+
+	 } else HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 // if running on data just do this
 
        }
 
@@ -902,39 +937,39 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
  
 	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
 
-	   //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
-	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
-	   // now we require a DeltaR cut between them to assess that lreco comes from lgen
-	   // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
+	   if (!ISDATA_FLAG) {
 
-	   Double_t DeltaR_lreco_lgen_pair1 = 0.0;
-	   Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+	     //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+	     // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+	     // now we require a DeltaR cut between them to assess that lreco comes from lgen
+	     // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
 
-	   if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+	     Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+	     Double_t DeltaR_lreco_lgen_pair2 = 0.0;
 
-	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
-	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+	     if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
 
-	   } else {
+	       DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	       DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+
+	     } else {
 	    
-	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
-	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+	       DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	       DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
 
-	   }
+	     }
 
-	   if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
+	     if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
 	     
-	     HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
-	     HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
-	     if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	       HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
+	       HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
+	       if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+
+	     }
 
 	   }
 
-	 }
-
-	 // if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-	 //   HzlljetsInvMassMetBinGenTau[bin]->Fill(mZ1,newwgt);   
-	 // }
+	 } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
 	 
        }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
        
@@ -1182,13 +1217,21 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
    // for those histogram filled with Divide() method, it's not done as long as it was already done on the histograms given as
    // argument to the Divide() method
    myAddOverflowInLastBin(HZtoLLRecoPt);
-   myAddOverflowInLastBin(HZtoLLGenPt);  
-   HZtoLLPt_RecoGenRatio->Divide(HZtoLLRecoPt,HZtoLLGenPt);
+   if (!ISDATA_FLAG) {
+     myAddOverflowInLastBin(HZtoLLGenPt);  
+     HZtoLLPt_RecoGenRatio->Divide(HZtoLLRecoPt,HZtoLLGenPt);
+   }
 
    for (Int_t i = 0; i < nMetBins; i++) {
-       myAddOverflowInLastBin(HZtoLLRecoPt_MetBin[i]);
+     myAddOverflowInLastBin(HZtoLLRecoPt_MetBin[i]);
+   }
+
+   
+   if (!ISDATA_FLAG) {
+     for (Int_t i = 0; i < nMetBins; i++) {
        myAddOverflowInLastBin(HZtoLLGenPt_MetBin[i]);
        HZtoLLPt_RecoGenRatio_MetBin[i]->Divide(HZtoLLRecoPt_MetBin[i],HZtoLLGenPt_MetBin[i]);  
+     }
    }
 
    rootFile->Write();
@@ -1208,11 +1251,8 @@ void zlljets_resoResp_noSkim_light::loop(const char* configFileName)
      fprintf(fp,"\\begin{document}\n");
      fprintf(fp,"\n");
      string commentInTable;       
-     //makeTableTex(fp, LUMI, nTotalWeightedEvents, &mu_Acc_Eff, commentInTable);      
      commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
-     //makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample,commentInTable);
      makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep,commentInTable);
-     //makeTableTex(fp, LUMI, nTotalWeightedEvents, &tautaubkgInZll,commentInTable);
      makeTableTex(fp, LUMI, nTotalWeightedEvents, &resoAndResponse);
      fprintf(fp,"\\end{document}\n");      
      fclose(fp);
