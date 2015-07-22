@@ -38,7 +38,7 @@ using namespace myAnalyzerTEman;
 
 #ifdef znunujetsAna_cxx
 
-znunujetsAna::znunujetsAna(TTree *tree) : edimarcoTree_noSkim(tree) {
+znunujetsAna::znunujetsAna(TTree *tree) : edimarcoTree_v2(tree) {
   //cout <<"check in constructor "<<endl;
   Init(tree);
 
@@ -150,7 +150,7 @@ void znunujetsAna::loop(const char* configFileName)
    Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
    Int_t nMetBins = (sizeof(metBinEdges)/sizeof(Double_t)) - 1;
 
-   selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
+   selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean30 >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
    selection jjdphiC("jjdphiC",Form("jjdphi < %1.1lf",J1J2DPHI),Form("only if njets = %i",NJETS));
    selection njetsC("njets","nJetClean30 <= 2");
    selection eLooseVetoC("eLooseVetoC","electrons veto");
@@ -162,14 +162,15 @@ void znunujetsAna::loop(const char* configFileName)
    selection::checkMaskLength();
    selection::printActiveSelections(cout);
 
-   mask znunujetsMonojetSelection("Z->mumu control sample with selection flow as Emanuele's");
-   znunujetsMonojetSelection.append(metNoMuStartC.get2ToId());
+   mask znunujetsMonojetSelection("monojet selection on Z->nunu sample with selection flow as Emanuele's");
+
+   if (METNOLEP_START) znunujetsMonojetSelection.append(metNoMuStartC.get2ToId());
    znunujetsMonojetSelection.append(jet1C.get2ToId());
    znunujetsMonojetSelection.append(jjdphiC.get2ToId());
    znunujetsMonojetSelection.append(njetsC.get2ToId());
    znunujetsMonojetSelection.append(eLooseVetoC.get2ToId());
    znunujetsMonojetSelection.append(muLooseVetoC.get2ToId());
-   znunujetsMonojetSelection.append(tauLooseVetoC.get2ToId());
+   if (TAU_VETO_FLAG) znunujetsMonojetSelection.append(tauLooseVetoC.get2ToId());
    znunujetsMonojetSelection.append(gammaLooseVetoC.get2ToId());
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
