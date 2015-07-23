@@ -103,6 +103,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      fChain->SetBranchStatus("GenPart_phi",1);
      fChain->SetBranchStatus("GenPart_mass",1);
      fChain->SetBranchStatus("GenPart_motherIndex",1);
+
+     fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC
    }
 
    fChain->SetBranchStatus("met_pt",1);
@@ -113,8 +115,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //fChain->SetBranchStatus("metNoMu_eta",1);
    fChain->SetBranchStatus("metNoMu_phi",1);
 
-   fChain->SetBranchStatus("nVert",1);  // number of good vertices
-   fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC 
+   fChain->SetBranchStatus("nVert",1);  // number of good vertices 
 
    char ROOT_FNAME[100];
    char TXT_FNAME[100];
@@ -544,10 +545,17 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    //Int_t Hcolor[] = {1,2,3,4,5,6,7,8,9,12,18,30,38,41,42,46,47,49};       
 
+   Float_t invMassBinWidth = 1.0;  // invariant mass histogram's bin width in GeV
+   Int_t NinvMassBins = (DILEPMASS_UP - DILEPMASS_LOW) / invMassBinWidth;
+
    //TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample in bins of met;#slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    TH1D *HzlljetsYieldsMetBinGenLep = new TH1D("HzlljetsYieldsMetBinGenLep",Form("yields of %s control sample (%s gen if MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
    //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    
+   TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
+   TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);
+   TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
+
    TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);
    TH1D *HZtoLLGenPt ;
    TH1D *HZtoLLPt_RecoGenRatio;                    // this is the histogram with reco/gen
@@ -573,9 +581,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    TH1D *HZtoLLGenPt_MetBin[nMetBins];
    TH1D *HZtoLLPt_RecoGenRatio_MetBin[nMetBins];
    TH1D *HZtoLLPt_RecoGenRatio_pdf_MetBin[nMetBins];
-
-   Float_t invMassBinWidth = 2.0;  // invariant mass histogram's bin width in GeV
-   Int_t NinvMassBins = (DILEPMASS_UP - DILEPMASS_LOW) / invMassBinWidth;
 
    for (Int_t i = 0; i < nMetBins; i++) {
 
@@ -608,7 +613,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //Double_t ZptBinEdges[] = {250., 260., 270., 280., 290., 310., 330., 350., 370., 390., 410., 430., 450., 470., 500., 530., 560, 600., 640., 700., 800.};
    //Double_t ZptBinEdges[] = {250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
-   Double_t ZptBinEdges[] = {20., 40., 60., 80., 100., 120., 140., 160., 180., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   //Double_t ZptBinEdges[] = {20., 40., 60., 80., 100., 120., 140., 160., 180., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200.};
 
    Int_t nBinsForResponse = sizeof(ZptBinEdges)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
 
@@ -662,7 +668,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      if (jentry%500000 == 0) cout << jentry << endl;
 
      UInt_t eventMask = 0; 
-     Double_t newwgt = weight * LUMI;
+     Double_t newwgt;
+
+     if (ISDATA_FLAG) newwgt = 1.0;
+     else newwgt = vtxW * weight * LUMI;
 
      nTotalWeightedEvents += newwgt;  // counting events with weights
 
@@ -765,9 +774,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // beginning of eventMask building
 
      
-     // genLepC added to mask above if ISDATA_FLAG == false (in order not to repeat here the check 
-
-     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));  //could skip cut on eta
+     // genLepC added to mask above if ISDATA_FLAG == false (in order not to repeat here the check) 
+     
+     eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));  //could skip cut on eta 
      eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
      eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
      eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
@@ -819,6 +828,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+	 HinvMass->Fill(mZ1,newwgt);
+	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
 
 	 if (!ISDATA_FLAG) {
 
