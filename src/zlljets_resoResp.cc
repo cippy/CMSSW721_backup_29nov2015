@@ -160,6 +160,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Int_t JETS_SELECTION_RESORESP_FLAG;
    Int_t PHOTON_VETO_RESORESP_FLAG;
    Int_t LEPTON_VETO_RESORESP_FLAG;
+   Double_t XSEC_OVER_NPROCESSED;
    string FILENAME_BASE;
 
    ifstream inputFile(configFileName);
@@ -231,6 +232,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      JETS_SELECTION_RESORESP_FLAG = (Int_t) parameterValue[33];
      PHOTON_VETO_RESORESP_FLAG = (Int_t) parameterValue[34];
      LEPTON_VETO_RESORESP_FLAG = (Int_t) parameterValue[35];
+     XSEC_OVER_NPROCESSED = parameterValue[36];
      mySpaces(cout,2);
 
      inputFile.close();
@@ -272,9 +274,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // following selections are set differently in the next "if" statements depending on the lepton flavour 
    //selection metNoLepC[metCut.size()];
    selection lepLooseVetoC;
-   selection twoLeptonsC;;
-   selection twoLepLooseC;;
-   selection lep1tightIdIso04C;;
+   selection twoLeptonsC;
+   selection twoLepLooseC;
+   selection lep1tightIdIso04C;
    selection twoLepTightC;
    selection lep1ptC;
    selection lep2ptC;
@@ -452,7 +454,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    if (fabs(LEP_PDG_ID) == 13) {  
 
-     maskTightTag = lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId() + lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId();  ;  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
+     maskTightTag = lep1tightIdIso04C.get2ToId() + /* lep2tightIdIso04C.get2ToId() +*/lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId();  ;  // for now tight requirements on pt and eta are already included in the loose condition because they coincide (not true for electrons)
    
      // zlljetsControlSample.append(metNoLepStartC.get2ToId());
      // zlljetsControlSample.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
@@ -472,7 +474,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // tautaubkgInZll.append(maskTightTag);
      // tautaubkgInZll.append(invMassC.get2ToId());
 
-     resoAndResponse.append(maskTightTag);
+     resoAndResponse.append(maskTightTag + lep2tightIdIso04C.get2ToId());
      resoAndResponse.append(invMassC.get2ToId());
 
    } else if (fabs(LEP_PDG_ID) == 11) {  
@@ -521,6 +523,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // tautaubkgInZll.append(gammaLooseVetoC.get2ToId());
 
    if (JETS_SELECTION_RESORESP_FLAG) resoAndResponse.append(maskJetsSelection);
+   else resoAndResponse.append(njetsC.get2ToId());      // I always consider only < =2 jets (it may also be 0 jets)
    if (PHOTON_VETO_RESORESP_FLAG) resoAndResponse.append(gammaLooseVetoC.get2ToId());
    if (LEPTON_VETO_RESORESP_FLAG) resoAndResponse.append(lepLooseVetoC.get2ToId());
 
@@ -553,6 +556,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    
    TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
+   TH1D *HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
    TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
 
@@ -566,13 +570,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      HZtoLLGenPt = new TH1D("HZtoLLGenPt","",101,0.,1010);
      HZtoLLPt_RecoGenRatio = new TH1D("HZtoLLPt_RecoGenRatio","",101,0.,1010.);
      HZtoLLPt_RecoGenRatio_pdf = new TH1D("HZtoLLPt_RecoGenRatio_pdf","",100,0.5,1.5);
-     HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf = new TH1D("HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf","",100,0.5,1.5);
+     HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf = new TH1D("HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf","",100,0.5,1.5);  // will be useful when we get to this range in data
    }
-
-   // TH1D* Hacc = new TH1D("Hacc","",nMetBins,metBinEdges);
-   // TH1D* Heff = new TH1D("Heff","",nMetBins,metBinEdges);
-   // TH1D* Hacceff = new TH1D("Hacceff","",nMetBins,metBinEdges);
-   // TH1D *HzvvEstimate = new TH1D("HzvvEstimate",Form("yields of Z->#nu#nu estimated as N(%s) * BR_ratio / (A*#varepsilon)",CONTROL_SAMPLE),nMetBins,metBinEdges);
 
    //TH1D *HinvMass[nMetBins];
    TH1D *HzlljetsInvMassMetBinGenLep[nMetBins];
@@ -597,6 +596,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    } 
 
+   TH1D *H_uPerp_Distribution = new TH1D("H_uPerp_Distribution","",50,-200,200);
+   TH1D *H_uParMinusZpT_Distribution = new TH1D("H_uParMinusZpT_Distribution","",50,-200,200);
+
    TH1D *H_uPerp_VS_Nvtx[NVTXS];
    TH1D *H_uPar_VS_Nvtx[NVTXS]; 
    TH1D *H_uPar_VS_Nvtx_lowZpT[NVTXS];
@@ -614,9 +616,22 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //Double_t ZptBinEdges[] = {250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Double_t ZptBinEdges[] = {20., 40., 60., 80., 100., 120., 140., 160., 180., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
-   Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200.};
+   Double_t *ZptBinEdges = NULL;
+   Double_t ZptBinEdgesMC[] = {0., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   Double_t ZptBinEdgesDATA[] = {0., 20., 40., 60., 80., 100., 120., 140., 160., 190., 220., 250.};
+   Int_t nBinsForResponse = 0;
 
-   Int_t nBinsForResponse = sizeof(ZptBinEdges)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
+   if (ISDATA_FLAG) {
+
+     ZptBinEdges = ZptBinEdgesDATA;
+     nBinsForResponse = sizeof(ZptBinEdgesDATA)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
+
+   } else {
+
+     ZptBinEdges = ZptBinEdgesMC;
+     nBinsForResponse = sizeof(ZptBinEdgesMC)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
+
+   }
 
    TH1D *H_uPerp_VS_ZpT[nBinsForResponse];  
    TH1D *H_uPar_VS_ZpT[nBinsForResponse]; 
@@ -652,6 +667,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      Hnvtx->SetBinContent(i+1,FIRST_NVTX+i);
    }
 
+   Int_t using_spring15_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
+   // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
+   Int_t using_zlljets_MCsample_flag = 0;
+   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1;  
+
    Long64_t nentries = fChain->GetEntriesFast();
    cout<<"zlljets_resoResp::loop()"<<endl;
    cout<<"nentries = "<<nentries<<endl;   
@@ -671,7 +692,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      Double_t newwgt;
 
      if (ISDATA_FLAG) newwgt = 1.0;
-     else newwgt = vtxW * weight * LUMI;
+     //else  if (using_spring15_sample_flag) newwgt = vtxW * weight * LUMI;
+     // computed weight myself for the sample: xsec = 6024*1000 fb, N = 19871324, for DYjetsToLL 
+     // the reason is that 
+     else  if (using_spring15_sample_flag) newwgt = vtxW * XSEC_OVER_NPROCESSED * LUMI;  
+     else newwgt = weight * LUMI;
 
      nTotalWeightedEvents += newwgt;  // counting events with weights
 
@@ -681,7 +706,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      Double_t ZgenMass; 
      Double_t ZtoLLGenPt;    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
 
-     if (!ISDATA_FLAG) {
+     if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
        genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
        if (!genLepFound_flag) continue;
@@ -828,8 +853,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+
 	 HinvMass->Fill(mZ1,newwgt);
 	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
 	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
 
 	 if (!ISDATA_FLAG) {
@@ -889,13 +916,15 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	 Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);  // actually u_par is minus this quantity, but then I do u_par-ZpT instead of u_par+ZpT
 	 Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
+	 Double_t uparMinusZrecoPt = u_par - ZtoLLRecoPt;
+
+	 H_uPerp_Distribution->Fill(u_perp,newwgt);
+	 H_uParMinusZpT_Distribution->Fill(uparMinusZrecoPt,newwgt);
 
 	 if (ZtoLLRecoPt > ZptBinEdges[0]) {  
 
 	   Int_t nvtxBin = nVert - FIRST_NVTX;
 	   Int_t lastnvtx = NVTXS + FIRST_NVTX;
-
-	   Double_t uparMinusZrecoPt = u_par - ZtoLLRecoPt;
 
 	   if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
 
