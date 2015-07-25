@@ -415,6 +415,14 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    selection::checkMaskLength();
    selection::printActiveSelections(cout);
 
+   Int_t using_spring15_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
+   // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
+
+   // the following flag is needed to enable search for Z->ll at generator level. For MC samples different from DYJetsToLL I must not require 2 gen leptons from Z
+   Int_t using_zlljets_MCsample_flag = 0;
+   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1;  
+
    UInt_t maskJetsSelection = njetsC.get2ToId() + jet1C.get2ToId() + jjdphiC.get2ToId();
 
    UInt_t maskMonoJetSelection = maskJetsSelection + lepLooseVetoC.get2ToId() + gammaLooseVetoC.get2ToId();
@@ -425,8 +433,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    //mask zlljetsControlSample(Form("%s control sample with selection flow as Emanuele's",CONTROL_SAMPLE));
 
-   mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen if MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
-   if (!ISDATA_FLAG) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
+   mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
+   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
    zlljetsControlSampleGenLep.append(HLTlepC.get2ToId());
 
    // mask tautaubkgInZll(Form("tau tau background in %s control sample",CONTROL_SAMPLE));
@@ -439,8 +447,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    // if (HLT_FLAG) {
 
-   //   //zlljetsControlSample.append(HLTlepC.get2ToId());
-     
+   //   //zlljetsControlSample.append(HLTlepC.get2ToId());     
    //   //tautaubkgInZll.append(HLTlepC.get2ToId());
 
    // }
@@ -667,12 +674,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      Hnvtx->SetBinContent(i+1,FIRST_NVTX+i);
    }
 
-   Int_t using_spring15_sample_flag = 0;
-   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
-   // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
-   Int_t using_zlljets_MCsample_flag = 0;
-   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1;  
-
    Long64_t nentries = fChain->GetEntriesFast();
    cout<<"zlljets_resoResp::loop()"<<endl;
    cout<<"nentries = "<<nentries<<endl;   
@@ -703,8 +704,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      nLepLoose = *ptr_nLepLoose;          
      nLep10V = *ptr_nLep10V;
 
-     Double_t ZgenMass; 
-     Double_t ZtoLLGenPt;    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+     //Double_t ZgenMass;        // not used for now
+     Double_t ZtoLLGenPt = 0;    // filled below (only if running on MC DYJetsToLL)
+     Double_t ZtoLLRecoPt = 0;   // filled below
+
+     // genLepFound_flag is used when analysing DYJetsToLL in MC. For other MC samples it's not used.
 
      if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
@@ -715,9 +719,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
        l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
        Zgen = l1gen + l2gen;
-       Z_index = GenPart_motherIndex[firstIndexGen];   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);  
-       ZgenMass = Zgen.Mag(); 
-       ZtoLLGenPt = Zgen.Pt();    // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+       //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);
+       //Z_index = GenPart_motherIndex[firstIndexGen];      // not use for now
+       //ZgenMass = Zgen.Mag();                             // not used for now 
+       ZtoLLGenPt = Zgen.Pt();                              // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
 
      }
 
@@ -727,7 +732,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
      Zreco = l1reco + l2reco;
-     Double_t ZtoLLRecoPt = Zreco.Pt();
+     ZtoLLRecoPt = Zreco.Pt();
 
      if (fabs(LEP_PDG_ID) == 13) { 
 
@@ -854,12 +859,21 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
 
+       }
+
+       // if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
+       // 	 // this histogram holds the final yields in bins of MET
+       // 	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+       // }
+
+       if ( ((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back()) ) {  
+	   
 	 HinvMass->Fill(mZ1,newwgt);
 	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
 	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
 	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
 
-	 if (!ISDATA_FLAG) {
+	 if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
 	   //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
 	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
@@ -896,15 +910,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	 } else HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 // if running on data just do this
 
-       }
-
-       // if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-       // 	 // this histogram holds the final yields in bins of MET
-       // 	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
-       // }
-
-       if ( ((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back()) ) {  
-	   
 	 // following is done if two OS leptons are found (otherwise there would be no Z)
 	 // moreover, if we have electron, trigger selection must be passed 
 	 //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
@@ -978,7 +983,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
  
 	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
 
-	   if (!ISDATA_FLAG) {
+	 }
+
+	 if (((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back())) {
+
+	   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
 	     //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
 	     // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
@@ -1008,9 +1017,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	     }
 
-	   }
+	   } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
 
-	 } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
+	 } 
 	 
        }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
        
