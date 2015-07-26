@@ -314,6 +314,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Int_t secondIndexGen = 1;
    Int_t recoLepFound_flag = 0;
    Int_t genLepFound_flag = 0;
+   Int_t genTauFound_flag = 0;
    Int_t Z_index = 0; 
 
    Double_t nTotalWeightedEvents = 0.0;     
@@ -337,6 +338,17 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
    //Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
+
+   Int_t using_spring15_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
+   // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
+
+   // the following flag is needed to enable search for Z->ll at generator level. For MC samples different from DYJetsToLL I must not require 2 gen leptons from Z
+   Int_t using_zlljets_MCsample_flag = 0;
+   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1; 
+
+   Int_t using_ztautau_MCsample_flag = 0;
+   if ( !ISDATA_FLAG && (FILENAME_BASE.find("ztautaujets") != std::string::npos) ) using_ztautaujets_MCsample_flag = 1; 
 
    if (ISDATA_FLAG) {
      strcpy(ROOT_FNAME,(FILENAME_BASE + "_DATA.root").c_str());
@@ -408,20 +420,13 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    }
 
-   //selection genTausC("genTausC","taus generated");                       
+   selection genTausC;
+   if (!ISDATA_FLAG && using_ztautau_MCsample_flag) genTauC.set("genTauC","taus generated");                       
    //selection acceptanceC("acceptanceC","acceptance cuts");
    //selection efficiencyC("efficiencyC","efficiency cuts");
 
    selection::checkMaskLength();
-   selection::printActiveSelections(cout);
-
-   Int_t using_spring15_sample_flag = 0;
-   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
-   // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
-
-   // the following flag is needed to enable search for Z->ll at generator level. For MC samples different from DYJetsToLL I must not require 2 gen leptons from Z
-   Int_t using_zlljets_MCsample_flag = 0;
-   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1;  
+   selection::printActiveSelections(cout); 
 
    UInt_t maskJetsSelection = njetsC.get2ToId() + jet1C.get2ToId() + jjdphiC.get2ToId();
 
@@ -434,7 +439,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //mask zlljetsControlSample(Form("%s control sample with selection flow as Emanuele's",CONTROL_SAMPLE));
 
    mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
-   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
+   if (!ISDATA_FLAG) {
+     if (using_zlljets_MCsample_flag) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
+     else if (using_ztautau_MCsample_flag) zlljetsControlSampleGenLep.append(genTauC.get2ToId());
+   }
    zlljetsControlSampleGenLep.append(HLTlepC.get2ToId());
 
    // mask tautaubkgInZll(Form("tau tau background in %s control sample",CONTROL_SAMPLE));
@@ -530,7 +538,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // tautaubkgInZll.append(gammaLooseVetoC.get2ToId());
 
    if (JETS_SELECTION_RESORESP_FLAG) resoAndResponse.append(maskJetsSelection);
-   else resoAndResponse.append(njetsC.get2ToId());      // I always consider only < =2 jets (it may also be 0 jets)
+   else resoAndResponse.append(njetsC.get2ToId());      // I always consider at least < =2 jets (it may also be 0 jets)
    if (PHOTON_VETO_RESORESP_FLAG) resoAndResponse.append(gammaLooseVetoC.get2ToId());
    if (LEPTON_VETO_RESORESP_FLAG) resoAndResponse.append(lepLooseVetoC.get2ToId());
 
@@ -566,12 +574,13 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    TH1D *HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
    TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
+   TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);
 
-   TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);
+   TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);   // end at 1010 because I will put the overflow in the last bin
    TH1D *HZtoLLGenPt ;
    TH1D *HZtoLLPt_RecoGenRatio;                    // this is the histogram with reco/gen
    TH1D *HZtoLLPt_RecoGenRatio_pdf;             // histogram of reco/gen distribution function
-   TH1D *HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf;     
+   TH1D *HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf;   // when we have more data, it will be useful to see comparison between ee and mumu at high ZpT  
 
    if (!ISDATA_FLAG) {
      HZtoLLGenPt = new TH1D("HZtoLLGenPt","",101,0.,1010);
@@ -603,6 +612,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    } 
 
+   // following 2 histograms hold the inclusive distribution of parallel and ortogonal component of recoil (projected along the ZpT direction)
    TH1D *H_uPerp_Distribution = new TH1D("H_uPerp_Distribution","",50,-200,200);
    TH1D *H_uParMinusZpT_Distribution = new TH1D("H_uParMinusZpT_Distribution","",50,-200,200);
 
@@ -624,9 +634,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Double_t ZptBinEdges[] = {20., 40., 60., 80., 100., 120., 140., 160., 180., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    Double_t *ZptBinEdges = NULL;
-   Double_t ZptBinEdgesMC[] = {0., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
-   Double_t ZptBinEdgesDATA[] = {0., 20., 40., 60., 80., 100., 120., 140., 160., 190., 220., 250.};
-   Int_t nBinsForResponse = 0;
+   Double_t ZptBinEdgesMC[] = {0., 5., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   Double_t ZptBinEdgesDATA[] = {0., 10., 20., 40., 60., 80., 100., 120., 140., 170., 200., 250.};
+   Int_t nBinsForResponse = 0;   // # of bins for analysis as a function of ZpT
 
    if (ISDATA_FLAG) {
 
@@ -669,9 +679,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      HZptBinEdges->SetBinContent(i+1,ZptBinEdges[i]);
    }
 
-   TH1D *Hnvtx = new TH1D("Hnvtx","# of vertices for studies of variables as a function of nvtx",NVTXS,0.0,NVTXS);
+   TH1D *HnvtxBins = new TH1D("HnvtxBins","# of vertices for studies of variables as a function of nvtx",NVTXS,0.0,NVTXS);
    for (Int_t i = 0; i < NVTXS; i++) {              // watch out: differently from above, i < NVTXS, not <=, because if NVTXS = 3 I need 3 points, not 4
-     Hnvtx->SetBinContent(i+1,FIRST_NVTX+i);
+     HnvtxBins->SetBinContent(i+1,FIRST_NVTX+i);
    }
 
    Long64_t nentries = fChain->GetEntriesFast();
@@ -708,21 +718,31 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      Double_t ZtoLLGenPt = 0;    // filled below (only if running on MC DYJetsToLL)
      Double_t ZtoLLRecoPt = 0;   // filled below
 
-     // genLepFound_flag is used when analysing DYJetsToLL in MC. For other MC samples it's not used.
+     // genLepFound_flag is used when analysing DYJetsToLL in MC fo Z->mumu or Z->ee. For other MC samples it's not used.
 
-     if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
+     if (!ISDATA_FLAG) {
 
-       genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
-       if (!genLepFound_flag) continue;
+       if (using_zlljets_MCsample_flag) {
 
-       eventMask += genLepC.addToMask( genLepFound_flag );
-       l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
-       l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
-       Zgen = l1gen + l2gen;
-       //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);
-       //Z_index = GenPart_motherIndex[firstIndexGen];      // not use for now
-       //ZgenMass = Zgen.Mag();                             // not used for now 
-       ZtoLLGenPt = Zgen.Pt();                              // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+	 genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
+	 if (!genLepFound_flag) continue;  // if not found gen ee or mumu for MC DYJetsToLL ( l = mu or e) skip the event. This makes things faster
+
+	 eventMask += genLepC.addToMask( genLepFound_flag );
+	 l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
+	 l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
+	 Zgen = l1gen + l2gen;
+	 //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);
+	 //Z_index = GenPart_motherIndex[firstIndexGen];      // not use for now
+	 //ZgenMass = Zgen.Mag();                             // not used for now 
+	 ZtoLLGenPt = Zgen.Pt();                              // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+
+       } else if (using_ztautaujets_MCsample_flag) {
+
+	 genTauFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23);
+	 if (!genTauFound_flag) continue;  // if not found gen tautau for MC DYJetsToLL ( l = tau) skip the event. This makes things faster
+	 eventMask += genTauC.addToMask( genTauFound_flag );
+
+       }
 
      }
 
@@ -872,6 +892,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
 	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
 	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	 HvtxDistribution->Fill(nVert,newwgt);
 
 	 if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
