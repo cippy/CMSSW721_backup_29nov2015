@@ -58,6 +58,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // warning: in Emanuele's trees non integer values are float
 
    fChain->SetBranchStatus("weight",1);   // includes k-factor
+   fChain->SetBranchStatus("LHEorigWeight",1); // contains negative values: the weight in the event is weight*LHEorigWeight
 
    fChain->SetBranchStatus("nMu10V",1);  // # of muons passing loose selection
    fChain->SetBranchStatus("nEle10V",1);  // # of electrons passing loose selection for electron veto
@@ -340,14 +341,17 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Double_t metNoLepPhi = 0.0;   // same story as above
 
    Int_t using_spring15_sample_flag = 0;
-   if (FILENAME_BASE.find("spring15") != std::string::npos) using_spring15_sample_flag = 1;    
+   if (FILENAME_BASE.find("spring15") != std::string::npos) {
+     using_spring15_sample_flag = 1;    
+     cout << "Using spring15 samples" << endl;
+   }
    // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
 
    // the following flag is needed to enable search for Z->ll at generator level. For MC samples different from DYJetsToLL I must not require 2 gen leptons from Z
    Int_t using_zlljets_MCsample_flag = 0;
-   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) ) using_zlljets_MCsample_flag = 1; 
+   if ( !ISDATA_FLAG && ( (FILENAME_BASE.find("zmumujets") != std::string::npos) || (FILENAME_BASE.find("zeejets") != std::string::npos) ) )  using_zlljets_MCsample_flag = 1; 
 
-   Int_t using_ztautau_MCsample_flag = 0;
+   Int_t using_ztautaujets_MCsample_flag = 0;
    if ( !ISDATA_FLAG && (FILENAME_BASE.find("ztautaujets") != std::string::npos) ) using_ztautaujets_MCsample_flag = 1; 
 
    if (ISDATA_FLAG) {
@@ -420,8 +424,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    }
 
-   selection genTausC;
-   if (!ISDATA_FLAG && using_ztautau_MCsample_flag) genTauC.set("genTauC","taus generated");                       
+   selection genTauC;
+   if (!ISDATA_FLAG && using_ztautaujets_MCsample_flag) genTauC.set("genTauC","taus generated");                       
    //selection acceptanceC("acceptanceC","acceptance cuts");
    //selection efficiencyC("efficiencyC","efficiency cuts");
 
@@ -438,19 +442,24 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    //mask zlljetsControlSample(Form("%s control sample with selection flow as Emanuele's",CONTROL_SAMPLE));
 
-   mask zlljetsControlSampleGenLep(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
+   mask zlljetsControlSample(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
    if (!ISDATA_FLAG) {
-     if (using_zlljets_MCsample_flag) zlljetsControlSampleGenLep.append(genLepC.get2ToId());
-     else if (using_ztautau_MCsample_flag) zlljetsControlSampleGenLep.append(genTauC.get2ToId());
+     if (using_zlljets_MCsample_flag) zlljetsControlSample.append(genLepC.get2ToId());
+     else if (using_ztautaujets_MCsample_flag) zlljetsControlSample.append(genTauC.get2ToId());
    }
-   zlljetsControlSampleGenLep.append(HLTlepC.get2ToId());
+   zlljetsControlSample.append(HLTlepC.get2ToId());
 
    // mask tautaubkgInZll(Form("tau tau background in %s control sample",CONTROL_SAMPLE));
    // tautaubkgInZll.append(genTausC.get2ToId());
 
    mask resoAndResponse("selection for resolution and response");
+   if (!ISDATA_FLAG) {
+     if (using_zlljets_MCsample_flag) resoAndResponse.append(genLepC.get2ToId());
+     else if (using_ztautaujets_MCsample_flag) resoAndResponse.append(genTauC.get2ToId());
+   }
    resoAndResponse.append(HLTlepC.get2ToId());
-   resoAndResponse.append(oppChargeLeptonsC.get2ToId() + twoLepLooseC.get2ToId());
+   resoAndResponse.append(oppChargeLeptonsC.get2ToId());
+   resoAndResponse.append(twoLepLooseC.get2ToId());
    
 
    // if (HLT_FLAG) {
@@ -462,7 +471,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    if (METNOLEP_START) {
        
-     zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
+     zlljetsControlSample.append(metNoLepStartC.get2ToId());
      //resoAndResponse.append(metNoLepStartC.get2ToId());
 
    }
@@ -477,11 +486,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // zlljetsControlSample.append(maskTightTag);
      // zlljetsControlSample.append(invMassC.get2ToId());
          
-     //zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
-     zlljetsControlSampleGenLep.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
-     zlljetsControlSampleGenLep.append(twoLeptonsC.get2ToId());
-     zlljetsControlSampleGenLep.append(maskTightTag); 
-     zlljetsControlSampleGenLep.append(invMassC.get2ToId());
+     //zlljetsControlSample.append(metNoLepStartC.get2ToId());
+     zlljetsControlSample.append(oppChargeLeptonsC.get2ToId());
+     zlljetsControlSample.append(twoLepLooseC.get2ToId());
+     zlljetsControlSample.append(twoLeptonsC.get2ToId());
+     zlljetsControlSample.append(maskTightTag); 
+     zlljetsControlSample.append(invMassC.get2ToId());
    
      // tautaubkgInZll.append(metNoLepStartC.get2ToId());
      // tautaubkgInZll.append(twoLepLooseC.get2ToId() + oppChargeLeptonsC.get2ToId());
@@ -502,11 +512,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      // zlljetsControlSample.append(maskTightTag);
      // zlljetsControlSample.append(invMassC.get2ToId());
        
-     //zlljetsControlSampleGenLep.append(metNoLepStartC.get2ToId());
-     zlljetsControlSampleGenLep.append(oppChargeLeptonsC.get2ToId());
-     zlljetsControlSampleGenLep.append(twoLeptonsC.get2ToId());
-     zlljetsControlSampleGenLep.append(maskTightTag);
-     zlljetsControlSampleGenLep.append(invMassC.get2ToId());
+     //zlljetsControlSample.append(metNoLepStartC.get2ToId());
+     zlljetsControlSample.append(oppChargeLeptonsC.get2ToId());
+     zlljetsControlSample.append(twoLeptonsC.get2ToId());
+     zlljetsControlSample.append(maskTightTag);
+     zlljetsControlSample.append(invMassC.get2ToId());
    
      // tautaubkgInZll.append(metNoLepStartC.get2ToId());
      // tautaubkgInZll.append(oppChargeLeptonsC.get2ToId());
@@ -525,11 +535,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // zlljetsControlSample.append(lepLooseVetoC.get2ToId());
    // zlljetsControlSample.append(gammaLooseVetoC.get2ToId());
    
-   zlljetsControlSampleGenLep.append(jet1C.get2ToId());
-   zlljetsControlSampleGenLep.append(jjdphiC.get2ToId());
-   zlljetsControlSampleGenLep.append(njetsC.get2ToId());
-   zlljetsControlSampleGenLep.append(lepLooseVetoC.get2ToId());
-   zlljetsControlSampleGenLep.append(gammaLooseVetoC.get2ToId());
+   zlljetsControlSample.append(jet1C.get2ToId());
+   zlljetsControlSample.append(jjdphiC.get2ToId());
+   zlljetsControlSample.append(njetsC.get2ToId());
+   zlljetsControlSample.append(lepLooseVetoC.get2ToId());
+   zlljetsControlSample.append(gammaLooseVetoC.get2ToId());
 
    // tautaubkgInZll.append(jet1C.get2ToId());
    // tautaubkgInZll.append(jjdphiC.get2ToId());
@@ -544,7 +554,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    if (TAU_VETO_FLAG) {
      // zlljetsControlSample.append(tauLooseVetoC.get2ToId());
-     zlljetsControlSampleGenLep.append(tauLooseVetoC.get2ToId());
+     zlljetsControlSample.append(tauLooseVetoC.get2ToId());
      resoAndResponse.append(tauLooseVetoC.get2ToId());
    }
 
@@ -575,8 +585,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
    TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);
+   TH1D *HnjetsDistributions = new TH1D("HnjetsDistribution","njets using nJetClean30",10,-0.5,9.5);
 
    TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);   // end at 1010 because I will put the overflow in the last bin
+   // the previous histogram is differen from HzptDistribution because the binning is different
    TH1D *HZtoLLGenPt ;
    TH1D *HZtoLLPt_RecoGenRatio;                    // this is the histogram with reco/gen
    TH1D *HZtoLLPt_RecoGenRatio_pdf;             // histogram of reco/gen distribution function
@@ -634,19 +646,23 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    //Double_t ZptBinEdges[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Double_t ZptBinEdges[] = {20., 40., 60., 80., 100., 120., 140., 160., 180., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    Double_t *ZptBinEdges = NULL;
-   Double_t ZptBinEdgesMC[] = {0., 5., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
-   Double_t ZptBinEdgesDATA[] = {0., 10., 20., 40., 60., 80., 100., 120., 140., 170., 200., 250.};
+   Double_t ZptBinEdgesMC[] = {1., 5., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 220., 240., 260., 280., 300., 320., 340., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   Double_t ZptBinEdgesDATA[] = {1., 10., 20., 40., 60., 80., 100., 120., 140., 170., 200., 250.};
    Int_t nBinsForResponse = 0;   // # of bins for analysis as a function of ZpT
+
+   Int_t nBinsForResponse_0jets = 0;  // for the response curve in events with nJetClean30 = 0
 
    if (ISDATA_FLAG) {
 
      ZptBinEdges = ZptBinEdgesDATA;
      nBinsForResponse = sizeof(ZptBinEdgesDATA)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
+     nBinsForResponse_0jets = 7; //use first bins, up to 60 GeV
 
    } else {
 
      ZptBinEdges = ZptBinEdgesMC;
      nBinsForResponse = sizeof(ZptBinEdgesMC)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
+     nBinsForResponse_0jets = 4; //use first bins, up to 60 GeV
 
    }
 
@@ -654,6 +670,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    TH1D *H_uPar_VS_ZpT[nBinsForResponse]; 
    TH1D *H_uPar_ZpT_ratio[nBinsForResponse];  // for the response curve
    TH1D *HZptBinned[nBinsForResponse];
+
+   
+   TH1D *H_uPar_ZpT_ratio_0jets[nBinsForResponse_0jets];  // for the response curve in events with nJetClean30 = 0
+
    //the following histograms will give the distribution of met|| / wzpt. The mean value will be used to create the response curve, that is (<met|| / wzpt>) vs wzpt
    // for each point, wzpt will be taken as the average wzpt in the range considered
  
@@ -662,9 +682,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      //HZptBinned[i] are histograms with 5 bins in the range given by ZptBinEdges[i] and ZptBinEdges[i+1]
      // the mean wzpt in each bin will be computed as the histogram's mean
      HZptBinned[i] = new TH1D(Form("HZptBinned_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",5,ZptBinEdges[i],ZptBinEdges[i+1]); 
-     H_uPar_ZpT_ratio[i] = new TH1D(Form("H_uPar_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",50,0.0,2.0); 
+     // in the following histogram , range must include negative value: I saw that for low ZoT this distribution tends to be flat, thus if range goes from 0 to 2 (as it was before) the 
+     //mean for ZpT tending to 0 will be 1 and not 0 as we would expect.
+     H_uPar_ZpT_ratio[i] = new TH1D(Form("H_uPar_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",250,-5.0,5.0); 
      H_uPerp_VS_ZpT[i] = new TH1D(Form("H_uPerp_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
      H_uPar_VS_ZpT[i] = new TH1D(Form("H_uPar_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
+     if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",250,-5.0,5.0); 
 
    }
 
@@ -705,9 +728,13 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      if (ISDATA_FLAG) newwgt = 1.0;
      //else  if (using_spring15_sample_flag) newwgt = vtxW * weight * LUMI;
      // computed weight myself for the sample: xsec = 6024*1000 fb, N = 19871324, for DYjetsToLL 
-     // the reason is that 
-     else  if (using_spring15_sample_flag) newwgt = vtxW * XSEC_OVER_NPROCESSED * LUMI;  
+     // the reason is that the weight variable is 1.929 * 10^ -5. Too low, but see note below
+     //else  if (using_spring15_sample_flag) newwgt = vtxW * XSEC_OVER_NPROCESSED * LUMI;  
+     else if (using_spring15_sample_flag) newwgt = vtxW * weight * LHEorigWeight * LUMI;
      else newwgt = weight * LUMI;
+
+     // about LHEorigWeight: it has negative weight. the mean value of this variable times weight is roughly the weight I computed myself. Now let's
+     // see if distributions are ok with this (they weren't before)
 
      nTotalWeightedEvents += newwgt;  // counting events with weights
 
@@ -747,7 +774,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      }
 
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);  
-     if (!recoLepFound_flag) continue;     
+     // if (!recoLepFound_flag) continue;    // abort it to count events with genLep of a given flavour 
 
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
@@ -761,7 +788,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	 // use the dimuon trigger, not the metNoLep trigger
        	 if ( recoLepFound_flag && (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
        	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
-       	 else continue;
+       	 else HLT_passed_flag = 0; //continue;
 
        }  // end of   if ( HLT_FLAG )
 
@@ -784,7 +811,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        	 if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
        	      (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
        	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
-	 else continue;
+	 else HLT_passed_flag = 0;  //continue;
 
        }  // end of   if ( HLT_FLAG )
 
@@ -864,7 +891,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        // nTotalWeightedEvents counts the number of events passing trigger selection, if any
 
        //zlljetsControlSample.countEvents(eventMask,newwgt);
-       zlljetsControlSampleGenLep.countEvents(eventMask,newwgt);
+       zlljetsControlSample.countEvents(eventMask,newwgt);
        //tautaubkgInZll.countEvents(eventMask, newwgt);
        resoAndResponse.countEvents(eventMask, newwgt);
 
@@ -874,7 +901,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        // 	 HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);    
        // }
 
-       if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) {
+       if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {
 
 	 // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
@@ -887,12 +914,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
        // }
 
        if ( ((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back()) ) {  
-	   
-	 HinvMass->Fill(mZ1,newwgt);
-	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
-	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
-	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
-	 HvtxDistribution->Fill(nVert,newwgt);
 
 	 if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
@@ -929,7 +950,18 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	   }
 
-	 } else HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 // if running on data just do this
+	 } else {  // if running on data or MC samples different from Z->mumu or Z->ee just do this
+
+	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 
+
+	   HinvMass->Fill(mZ1,newwgt);
+	   HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	   HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
+	   Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	   HvtxDistribution->Fill(nVert,newwgt);
+	   HnjetsDistributions->Fill(nJetClean30,newwgt);
+
+	 }
 
 	 // following is done if two OS leptons are found (otherwise there would be no Z)
 	 // moreover, if we have electron, trigger selection must be passed 
@@ -981,7 +1013,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	     H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
 	     H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
 	     H_uPar_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
- 
+	     if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
+
 	   }
 
 	 }            // end of if (ZtoLLRecoPt > ZptBinEdges[0])
@@ -1000,7 +1033,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	 //   HinvMass[bin]->Fill(mZ1,newwgt);   
 	 // }
 
-	 if ( ((eventMask & zlljetsControlSampleGenLep.globalMask.back()) == zlljetsControlSampleGenLep.globalMask.back()) ) { 
+	 if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) { 
  
 	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
 
@@ -1124,10 +1157,34 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    GresponseCurve->SetMarkerStyle(7);    // 7 is a medium dot
    GresponseCurve->GetXaxis()->SetTitle("ZpT [GeV]");
    GresponseCurve->GetYaxis()->SetTitle(" < u_{||} / ZpT >");
-   GresponseCurve->GetYaxis()->SetRangeUser(0.6, 1.1);
+   GresponseCurve->GetYaxis()->SetRangeUser(0.0, 1.1);
    GresponseCurve->GetYaxis()->SetTitleOffset(1.4); 
    GresponseCurve->SetName("gr_responseCurve");
    GresponseCurve->Write();
+
+   Double_t response_0jets[nBinsForResponse_0jets];
+   Double_t responseErr_0jets[nBinsForResponse_0jets];
+   Double_t meanZpt_0jets[nBinsForResponse_0jets];
+   Double_t meanZptErr_0jets[nBinsForResponse_0jets];
+
+   for (Int_t i = 0; i < nBinsForResponse_0jets; i++) {
+     meanZpt_0jets[i] = HZptBinned[i]->GetMean();
+     meanZptErr_0jets[i] = HZptBinned[i]->GetMeanError();
+     response_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMean();
+     responseErr_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMeanError();
+     //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
+   }
+
+   TGraphErrors *GresponseCurve_0jets = new TGraphErrors(nBinsForResponse_0jets,meanZpt_0jets,response_0jets,meanZptErr_0jets,responseErr_0jets);
+   GresponseCurve_0jets->SetTitle("response curve");
+   GresponseCurve_0jets->Draw("AP");
+   GresponseCurve_0jets->SetMarkerStyle(7);    // 7 is a medium dot
+   GresponseCurve_0jets->GetXaxis()->SetTitle("ZpT [GeV]");
+   GresponseCurve_0jets->GetYaxis()->SetTitle(" < u_{||} / ZpT >");
+   GresponseCurve_0jets->GetYaxis()->SetRangeUser(0.0, 1.1);
+   GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
+   GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
+   GresponseCurve_0jets->Write();
 
    // resolution vs ZpT
 
@@ -1167,7 +1224,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    mySpaces(cout,2);
 //selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
-   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
+   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
 //selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
    selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &resoAndResponse);
    // for (Int_t i = 0; i < nMetBins; i++) {
@@ -1230,7 +1287,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    mySpaces(myfile,3);
    //selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
-   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep);
+   selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    //selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &tautaubkgInZll);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &resoAndResponse);
    mySpaces(myfile,2);
@@ -1365,7 +1422,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      fprintf(fp,"\n");
      string commentInTable;       
      commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
-     makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSampleGenLep,commentInTable);
+     makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample,commentInTable);
      makeTableTex(fp, LUMI, nTotalWeightedEvents, &resoAndResponse);
      fprintf(fp,"\\end{document}\n");      
      fclose(fp);
