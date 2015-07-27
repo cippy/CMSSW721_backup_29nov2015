@@ -389,7 +389,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      lep2ptC.set("mu2ptC",Form("mu2pt > %3.0lf",LEP2PT),"trailing muon pt");
      lep1etaC.set("mu1etaC",Form("|mu1eta| < %1.1lf",LEP1ETA),"leading muon eta");  
      lep2etaC.set("mu2etaC",Form("|mu2eta| < %1.1lf",LEP2ETA),"trailing muon eta");
-      if (!ISDATA_FLAG) genLepC.set("genMuonsC","muons generated");     
+      if (!ISDATA_FLAG && using_zlljets_MCsample_flag) genLepC.set("genMuonsC","muons generated");     
      metNoLepStartC.set("metNoMu200C",Form("metNoMu > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTmuonC","HLT for muons");
      lep2tightIdIso04C.set("mu2tightIdIso04C","trailing muon tight","tight ID + relIso04 (as Emanuele)");
@@ -417,7 +417,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      lep2ptC.set("ele2ptC",Form("ele2pt > %3.0lf",LEP2PT),"trailing electron pt");
      lep1etaC.set("ele1etaC",Form("|ele1eta| < %1.1lf",LEP1ETA),"leading electron eta");  
      lep2etaC.set("ele2etaC",Form("|ele2eta| < %1.1lf",LEP2ETA),"trailing electron eta");
-     if (!ISDATA_FLAG) genLepC.set("genElectronsC","electrons generated");     
+     if (!ISDATA_FLAG && using_zlljets_MCsample_flag) genLepC.set("genElectronsC","electrons generated");     
      metNoLepStartC.set("metNoEle200C",Form("metNoEle > %2.0lf",METNOLEP_START));
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
