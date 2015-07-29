@@ -430,11 +430,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
    }
 
-   selection recoGenMatchC;
+   selection recoGenLepMatchC;
    if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-     if (fabs(LEP_PDG_ID) == 13) recoGenMatchC.set("recoGenMatchC","match of reco and gen muons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");      
-     else if (fabs(LEP_PDG_ID) == 11) recoGenMatchC.set("recoGenMatchC","match of reco and gen electrons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");    
+     if (fabs(LEP_PDG_ID) == 13) recoGenLepMatchC.set("recoGenMuMatchC","match of reco and gen muons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");      
+     else if (fabs(LEP_PDG_ID) == 11) recoGenLepMatchC.set("recoGenEleMatchC","match of reco and gen electrons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");    
   
    }
 
@@ -570,6 +570,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // zlljetsControlSample.append(tauLooseVetoC.get2ToId());
      zlljetsControlSample.append(tauLooseVetoC.get2ToId());
      resoAndResponse.append(tauLooseVetoC.get2ToId());
+   }
+
+   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
+     zlljetsControlSample.append(recoGenLepMatchC.get2ToId());
+     resoAndResponse.append(recoGenLepMatchC.get2ToId());
    }
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
@@ -925,8 +930,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 
 	 }
        
-	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenMatchC.addToMask(1);
-	 else recoGenMatchC.addToMask(0);
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenLepMatchC.addToMask(1);
+	 else recoGenLepMatchC.addToMask(0);
 
        }
 
