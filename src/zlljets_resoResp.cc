@@ -49,7 +49,7 @@ zlljets_resoResp::zlljets_resoResp(TTree *tree) : edimarcoTree_v2(tree) {
 
 #endif
 
-void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag = 0)
+void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag)
 {
 
    if (fChain == 0) return;
@@ -315,15 +315,15 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    Int_t secondIndexGen = 1;
    Int_t recoLepFound_flag = 0;
    Int_t genLepFound_flag = 0;
-   Int_t recoGenMatchDR_flag = 0;
+   //Int_t recoGenMatchDR_flag = 0;
    Int_t genTauFound_flag = 0;
    Int_t Z_index = 0; 
 
    Double_t nTotalWeightedEvents = 0.0;     
-   Double_t nEventsAfterMatchRecoGen = 0.0;
-   Int_t HLT_passed_flag = 1; // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
-   // it's set to 1 because if the trigger selection is not applied every event must be considered to be a "good" event having passed all preselections
-   // Actually in this code the trigger is necessary, but I keep it like this nonetheless.
+   //Double_t nEventsAfterMatchRecoGen = 0.0;
+   Int_t HLT_passed_flag = 1;          // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
+                                                       // it's set to 1 because if the trigger selection is not applied every event must be considered to be a "good" event having passed all preselections
+                                                       // Actually in this code the trigger is necessary, but I keep it like this nonetheless.
 
    // following 2 variable are used for acceptance and efficiency selection, define below in the loop: if selection is passed they are set to 1, otherwise they are set to 0
    // Int_t acceptanceSelectionDef = 0;
@@ -428,6 +428,14 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      HLTlepC.set("HLTelectronC","HLT for electrons");
      lep2tightIdIso04C.set("ele2tightIdIso04C","trailing electron tight","tight ID + relIso04 (as Emanuele)");
 
+   }
+
+   selection recoGenMatchC;
+   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
+
+     if (fabs(LEP_PDG_ID) == 13) recoGenMatchC.set("recoGenMatchC","match of reco and gen muons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");      
+     else if (fabs(LEP_PDG_ID) == 11) recoGenMatchC.set("recoGenMatchC","match of reco and gen electrons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");    
+  
    }
 
    selection genTauC;
@@ -900,7 +908,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        // now we require a DeltaR cut between them to assess that lreco comes from lgen
        // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
        
-       if (genLepFound_flag && recoLepFoundFlag) {       
+       if (genLepFound_flag && recoLepFound_flag) {       
 
 	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
 	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
@@ -917,11 +925,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 
 	 }
        
-	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenMatchDR_flag = 1;
-	 else recoGenMatchDR_flag = 0;
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenMatchC.addToMask(1);
+	 else recoGenMatchC.addToMask(0);
 
        }
-       
+
      }
 
 
@@ -952,46 +960,20 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        
        if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-	 //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
-	 // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
-	 // now we require a DeltaR cut between them to assess that lreco comes from lgen
-	 // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
-	   
-	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
-	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+	 HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
+	 HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
+	 if (ZtoLLGenPt != 0) {
 
-	 if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
-
-	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
-	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
-
-	 } else {
-	    
-	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
-	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+	   HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	   if (ZtoLLRecoPt > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 
 	 }
-
-	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
-	     
-	   nEventsAfterMatchRecoGen += newwgt;
-
-	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
-	   HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
-	   if (ZtoLLGenPt != 0) {
-
-	     HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-	     if (ZtoLLRecoPt > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-
-	   }
-	   HinvMass->Fill(mZ1,newwgt);
-	   HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
-	   HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
-	   Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
-	   HvtxDistribution->Fill(nVert,newwgt);
-	   HnjetsDistributions->Fill(nJetClean30,newwgt);
-
-	 }
+	 HinvMass->Fill(mZ1,newwgt);
+	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
+	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	 HvtxDistribution->Fill(nVert,newwgt);
+	 HnjetsDistributions->Fill(nJetClean30,newwgt);
 
        } else {  // if running on data or MC samples different from Z->mumu or Z->ee just do this
 
@@ -1086,33 +1068,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
 	 if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-	   //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
-	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
-	   // now we require a DeltaR cut between them to assess that lreco comes from lgen
-	   // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
-
-	   Double_t DeltaR_lreco_lgen_pair1 = 0.0;
-	   Double_t DeltaR_lreco_lgen_pair2 = 0.0;
-
-	   if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
-
-	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
-	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
-
-	   } else {
-	    
-	     DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
-	     DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
-
-	   }
-
-	   if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
-	     
-	     HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
-	     HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
-	     if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-
-	   }
+	   HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
+	   HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
+	   if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 
 	 } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
 
@@ -1273,10 +1231,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    // for (Int_t i = 0; i < nMetBins; i++) {
    //   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEventsNoHLT, lep_acc_eff[i] );
    // }
-
-   mySpaces(cout,2);
-   cout << "nEventsAfterMatchRecoGen = " << nEventsAfterMatchRecoGen << endl;
-   mySpaces(cout,2);
 
    mySpaces(cout,2);
    myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
