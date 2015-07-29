@@ -519,6 +519,18 @@ int main(int argc, char* argv[]) {
   string friendTreePath;
   string option = "";
 
+  Int_t unweighted_event_flag = 0;  // this flag tells the user if the MC uses unit weight (using w = 1 is basically for debugging purposes)
+
+  if (argc >=2 ) {
+
+    for (Int_t i = 2; i < argc; i++) {   // look at all possible options passed
+
+      if (argv[i]  == "-nw" ) unweighted_event_flag = 1;    //-nw option stands for "no weight"
+
+    }
+
+  }
+
   ifstream inputFile(configFileName);
 
    if (inputFile.is_open()) {
@@ -527,6 +539,7 @@ int main(int argc, char* argv[]) {
      string name;
      string parameterName;
      string parameterType;
+
      while (inputFile >> parameterType ) {  // read only first object  here
 
        if (parameterType == "NUMBER") {
@@ -624,7 +637,7 @@ int main(int argc, char* argv[]) {
   } else if ( !(std::strcmp("rerel",option.c_str()))) {
 
     zlljets_resoResp tree( chain );
-    tree.loop(configFileName, isdata_flag);
+    tree.loop(configFileName, isdata_flag, unweighted_event_flag);
 
   } else if (!(std::strcmp("ana",option.c_str())) ) {
 
