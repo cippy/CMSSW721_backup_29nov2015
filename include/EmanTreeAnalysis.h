@@ -125,7 +125,7 @@ namespace myAnalyzerTEman {
     zlljets_resoResp(TTree *tree);
     virtual ~zlljets_resoResp() { std::cout<<"~zlljets_resoResp() called"<<std::endl; }
   
-    void loop(const char* configFileName, const Int_t ISDATA_FLAG);
+    void loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag = 0);
 
   };
 
