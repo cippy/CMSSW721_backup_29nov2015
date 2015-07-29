@@ -49,7 +49,7 @@ zlljets_resoResp::zlljets_resoResp(TTree *tree) : edimarcoTree_v2(tree) {
 
 #endif
 
-void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
+void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag = 0)
 {
 
    if (fChain == 0) return;
@@ -315,10 +315,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    Int_t secondIndexGen = 1;
    Int_t recoLepFound_flag = 0;
    Int_t genLepFound_flag = 0;
+   Int_t recoGenMatchDR_flag = 0;
    Int_t genTauFound_flag = 0;
    Int_t Z_index = 0; 
 
    Double_t nTotalWeightedEvents = 0.0;     
+   Double_t nEventsAfterMatchRecoGen = 0.0;
    Int_t HLT_passed_flag = 1; // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
    // it's set to 1 because if the trigger selection is not applied every event must be considered to be a "good" event having passed all preselections
    // Actually in this code the trigger is necessary, but I keep it like this nonetheless.
@@ -336,6 +338,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
    Float_t nLepLoose = 0.0;               // this variable and the following should be an integer, but in Emanuele's trees they are float, so I keep them as such
    Float_t nLep10V = 0.0;
+
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
    //Double_t metNoLepEta = 0.0;
    Double_t metNoLepPhi = 0.0;   // same story as above
@@ -345,6 +348,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      using_spring15_sample_flag = 1;    
      cout << "Using spring15 samples" << endl;
    }
+
+   if ( !ISDATA_FLAG && unweighted_event_flag) cout << "Warning: no weight applied to events (w = 1)" << endl;  // if MC with unit weight, make user know
+
    // if using sample spring15, need to use vtxW to get same Nvtx distribution as seen in data. For older trees it's not used
 
    // the following flag is needed to enable search for Z->ll at generator level. For MC samples different from DYJetsToLL I must not require 2 gen leptons from Z
@@ -656,18 +662,18 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
      ZptBinEdges = ZptBinEdgesDATA;
      nBinsForResponse = sizeof(ZptBinEdgesDATA)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
-     nBinsForResponse_0jets = 7; //use first bins, up to 60 GeV
+     nBinsForResponse_0jets = 6; //use first bins, up to 60 GeV
 
    } else {
 
      ZptBinEdges = ZptBinEdgesMC;
      nBinsForResponse = sizeof(ZptBinEdgesMC)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
-     nBinsForResponse_0jets = 4; //use first bins, up to 60 GeV
+     nBinsForResponse_0jets = 11; //use first bins, up to 60 GeV
 
    }
 
    TH1D *H_uPerp_VS_ZpT[nBinsForResponse];  
-   TH1D *H_uPar_VS_ZpT[nBinsForResponse]; 
+   TH1D *H_uPar_VS_ZpT[nBinsForResponse];     // actually it will be (u_par-ZpT)
    TH1D *H_uPar_ZpT_ratio[nBinsForResponse];  // for the response curve
    TH1D *HZptBinned[nBinsForResponse];
 
@@ -684,10 +690,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      HZptBinned[i] = new TH1D(Form("HZptBinned_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",5,ZptBinEdges[i],ZptBinEdges[i+1]); 
      // in the following histogram , range must include negative value: I saw that for low ZoT this distribution tends to be flat, thus if range goes from 0 to 2 (as it was before) the 
      //mean for ZpT tending to 0 will be 1 and not 0 as we would expect.
-     H_uPar_ZpT_ratio[i] = new TH1D(Form("H_uPar_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",250,-5.0,5.0); 
+     H_uPar_ZpT_ratio[i] = new TH1D(Form("H_uPar_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
      H_uPerp_VS_ZpT[i] = new TH1D(Form("H_uPerp_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
      H_uPar_VS_ZpT[i] = new TH1D(Form("H_uPar_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
-     if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",250,-5.0,5.0); 
+     if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
 
    }
 
@@ -707,6 +713,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      HnvtxBins->SetBinContent(i+1,FIRST_NVTX+i);
    }
 
+   // deciding  what is the event weight
+   Double_t newwgt;
+
+   if (ISDATA_FLAG || unweighted_event_flag) newwgt = 1.0;
+
    Long64_t nentries = fChain->GetEntriesFast();
    cout<<"zlljets_resoResp::loop()"<<endl;
    cout<<"nentries = "<<nentries<<endl;   
@@ -723,18 +734,14 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
      if (jentry%500000 == 0) cout << jentry << endl;
 
      UInt_t eventMask = 0; 
-     Double_t newwgt;
 
-     if (ISDATA_FLAG) newwgt = 1.0;
-     //else  if (using_spring15_sample_flag) newwgt = vtxW * weight * LUMI;
-     // computed weight myself for the sample: xsec = 6024*1000 fb, N = 19871324, for DYjetsToLL 
-     // the reason is that the weight variable is 1.929 * 10^ -5. Too low, but see note below
-     //else  if (using_spring15_sample_flag) newwgt = vtxW * XSEC_OVER_NPROCESSED * LUMI;  
-     else if (using_spring15_sample_flag) newwgt = vtxW * weight * LHEorigWeight * LUMI;
-     else newwgt = weight * LUMI;
+     if(!ISDATA_FLAG && !unweighted_event_flag) {
 
-     // about LHEorigWeight: it has negative weight. the mean value of this variable times weight is roughly the weight I computed myself. Now let's
-     // see if distributions are ok with this (they weren't before)
+       if (using_spring15_sample_flag) newwgt = LUMI * vtxW * weight * LHEorigWeight; 
+       // I could be using also:     newwgt = LUMI * vtxW * XSEC_OVER_NPROCESSED;
+       else newwgt = LUMI * weight;   // for older trees (backward compatibility)
+
+     }
 
      nTotalWeightedEvents += newwgt;  // counting events with weights
 
@@ -886,34 +893,196 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
      // end of eventMask building
 
+     if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-       // this part, for electrons, is done only if trigger is passed
-       // nTotalWeightedEvents counts the number of events passing trigger selection, if any
+       //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+       // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+       // now we require a DeltaR cut between them to assess that lreco comes from lgen
+       // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
+       
+       if (genLepFound_flag && recoLepFoundFlag) {       
 
-       //zlljetsControlSample.countEvents(eventMask,newwgt);
-       zlljetsControlSample.countEvents(eventMask,newwgt);
-       //tautaubkgInZll.countEvents(eventMask, newwgt);
-       resoAndResponse.countEvents(eventMask, newwgt);
+	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+       
+	 if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+	 
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
 
-       // filling histogram with yields and invariant mass at the end of the selection in bins of met
-       // if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {  
-       // 	 // this histogram holds the final yields in bins of MET
-       // 	 HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);    
-       // }
+	 } else {
+	 
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+	 
+	 }
+       
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenMatchDR_flag = 1;
+	 else recoGenMatchDR_flag = 0;
 
-       if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {
+       }
+       
+     }
 
-	 // this histogram holds the final yields in bins of MET
+
+     //zlljetsControlSample.countEvents(eventMask,newwgt);
+     zlljetsControlSample.countEvents(eventMask,newwgt);
+     //tautaubkgInZll.countEvents(eventMask, newwgt);
+     resoAndResponse.countEvents(eventMask, newwgt);
+     
+     // filling histogram with yields and invariant mass at the end of the selection in bins of met
+     // if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {  
+     // 	 // this histogram holds the final yields in bins of MET
+     // 	 HzlljetsYieldsMetBin->Fill(metNoLepPt,newwgt);    
+     // }
+
+     if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) {
+       
+       // this histogram holds the final yields in bins of MET
 	 HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+	 
+     }
+     
+     // if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
+     // 	 // this histogram holds the final yields in bins of MET
+     // 	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+     // }
+     
+     if ( ((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back()) ) {  
+       
+       if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
+
+	 //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+	 // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+	 // now we require a DeltaR cut between them to assess that lreco comes from lgen
+	 // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
+	   
+	 Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+	 Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+
+	 if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+
+	 } else {
+	    
+	   DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	   DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+
+	 }
+
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
+	     
+	   nEventsAfterMatchRecoGen += newwgt;
+
+	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
+	   HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
+	   if (ZtoLLGenPt != 0) {
+
+	     HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+	     if (ZtoLLRecoPt > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
+
+	   }
+	   HinvMass->Fill(mZ1,newwgt);
+	   HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	   HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
+	   Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	   HvtxDistribution->Fill(nVert,newwgt);
+	   HnjetsDistributions->Fill(nJetClean30,newwgt);
+
+	 }
+
+       } else {  // if running on data or MC samples different from Z->mumu or Z->ee just do this
+
+	 HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 
+
+	 HinvMass->Fill(mZ1,newwgt);
+	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
+	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	 HvtxDistribution->Fill(nVert,newwgt);
+	 HnjetsDistributions->Fill(nJetClean30,newwgt);
 
        }
 
-       // if ( ((eventMask & tautaubkgInZll.globalMask.back()) == tautaubkgInZll.globalMask.back()) ) {  
-       // 	 // this histogram holds the final yields in bins of MET
-       // 	 HzlljetsYieldsMetBinGenTau->Fill(metNoLepPt,newwgt);  
+       // following is done if two OS leptons are found (otherwise there would be no Z)
+       // moreover, if we have electron, trigger selection must be passed 
+       //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
+		
+       //metNoLepTV3.SetPtEtaPhi((Double_t)metNoLepPt,(Double_t)metNoLepEta,(Double_t)metNoLepPhi);  // already initialized above
+       //Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
+       TVector3 Zreco3D = Zreco.Vect();
+       Double_t dphiMetNoLepZ = metNoLepTV.DeltaPhi(Zreco3D.XYvector());
+
+       Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);  // actually u_par is minus this quantity, but then I do u_par-ZpT instead of u_par+ZpT
+       Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
+       Double_t uparMinusZrecoPt = u_par - ZtoLLRecoPt;
+
+       H_uPerp_Distribution->Fill(u_perp,newwgt);
+       H_uParMinusZpT_Distribution->Fill(uparMinusZrecoPt,newwgt);
+
+       if (ZtoLLRecoPt > ZptBinEdges[0]) {  
+
+	 Int_t nvtxBin = nVert - FIRST_NVTX;
+	 Int_t lastnvtx = NVTXS + FIRST_NVTX;
+
+	 if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
+
+	   H_uPerp_VS_Nvtx[nvtxBin]->Fill(u_perp,newwgt);
+	     
+	   if (ZtoLLRecoPt < 250 ) {
+
+	     H_uPar_VS_Nvtx_lowZpT[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
+	     
+	   } else if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
+
+	     H_uPar_VS_Nvtx[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
+	 
+	   }       
+    
+	 }  // end of   if ((nvtxBin >= 0) && (nVert < lastnvtx))
+
+	 /**************************************************/
+	 // computing met responses
+	 /**************************************************/
+
+	 // first of all I make sure that wzpt is in the appropriate range
+	 if ( ZtoLLRecoPt < ZptBinEdges[nBinsForResponse] ) {
+
+	   Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
+	   //cout<<"bin = "<<bin<<endl;
+	   HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
+	   H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
+	   H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
+	   H_uPar_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
+	   if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
+
+	 }
+
+       }            // end of if (ZtoLLRecoPt > ZptBinEdges[0])
+
+     }
+	
+
+     // now entering analysis in bins of met
+
+     if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
+
+       Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
+       
+       // if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
+       //   // this histogram holds the invariant mass distribution (one for each met bin)
+       //   HinvMass[bin]->Fill(mZ1,newwgt);   
        // }
 
-       if ( ((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back()) ) {  
+       if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) { 
+ 
+	 HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
+
+       }
+
+       if (((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back())) {
 
 	 if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
@@ -921,7 +1090,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 	   // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
 	   // now we require a DeltaR cut between them to assess that lreco comes from lgen
 	   // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
-	   
+
 	   Double_t DeltaR_lreco_lgen_pair1 = 0.0;
 	   Double_t DeltaR_lreco_lgen_pair2 = 0.0;
 
@@ -939,143 +1108,17 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
 
 	   if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
 	     
-	     HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
-	     HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
-	     if (ZtoLLGenPt != 0) {
-
-	       HZtoLLPt_RecoGenRatio_pdf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-	       if (ZtoLLRecoPt > 600) HZtoLLPt_RecoGenRatio_pdf_ZpT600ToInf->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-
-	     }
+	     HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
+	     HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
+	     if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
 
 	   }
 
-	 } else {  // if running on data or MC samples different from Z->mumu or Z->ee just do this
+	 } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
 
-	   HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 
-
-	   HinvMass->Fill(mZ1,newwgt);
-	   HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
-	   HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
-	   Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
-	   HvtxDistribution->Fill(nVert,newwgt);
-	   HnjetsDistributions->Fill(nJetClean30,newwgt);
-
-	 }
-
-	 // following is done if two OS leptons are found (otherwise there would be no Z)
-	 // moreover, if we have electron, trigger selection must be passed 
-	 //metNoLepPt cut is also included: it's part of the trigger for muons and we also apply it to electrons for consistency
-		
-	 //metNoLepTV3.SetPtEtaPhi((Double_t)metNoLepPt,(Double_t)metNoLepEta,(Double_t)metNoLepPhi);  // already initialized above
-	 //Double_t dphiMetNoLepZ = metNoLepTV3.DeltaPhi(Zreco.Vect());
-	 TVector3 Zreco3D = Zreco.Vect();
-	 Double_t dphiMetNoLepZ = metNoLepTV.DeltaPhi(Zreco3D.XYvector());
-
-	 Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);  // actually u_par is minus this quantity, but then I do u_par-ZpT instead of u_par+ZpT
-	 Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
-	 Double_t uparMinusZrecoPt = u_par - ZtoLLRecoPt;
-
-	 H_uPerp_Distribution->Fill(u_perp,newwgt);
-	 H_uParMinusZpT_Distribution->Fill(uparMinusZrecoPt,newwgt);
-
-	 if (ZtoLLRecoPt > ZptBinEdges[0]) {  
-
-	   Int_t nvtxBin = nVert - FIRST_NVTX;
-	   Int_t lastnvtx = NVTXS + FIRST_NVTX;
-
-	   if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
-
-	     H_uPerp_VS_Nvtx[nvtxBin]->Fill(u_perp,newwgt);
-	     
-	     if (ZtoLLRecoPt < 250 ) {
-
-	       H_uPar_VS_Nvtx_lowZpT[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
-	     
-	     } else if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
-
-	       H_uPar_VS_Nvtx[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
+       } 
 	 
-	     }       
-    
-	   }  // end of   if ((nvtxBin >= 0) && (nVert < lastnvtx))
-
-	   /**************************************************/
-	   // computing met responses
-	   /**************************************************/
-
-	   // first of all I make sure that wzpt is in the appropriate range
-	   if ( ZtoLLRecoPt < ZptBinEdges[nBinsForResponse] ) {
-
-	     Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
-	     //cout<<"bin = "<<bin<<endl;
-	     HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
-	     H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
-	     H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
-	     H_uPar_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
-	     if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
-
-	   }
-
-	 }            // end of if (ZtoLLRecoPt > ZptBinEdges[0])
-
-       }
-	
-
-       // now entering analysis in bins of met
-
-       if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
-
-	 Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
-       
-	 // if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
-	 //   // this histogram holds the invariant mass distribution (one for each met bin)
-	 //   HinvMass[bin]->Fill(mZ1,newwgt);   
-	 // }
-
-	 if ( ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) ) { 
- 
-	   HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
-
-	 }
-
-	 if (((eventMask & resoAndResponse.globalMask.back()) == resoAndResponse.globalMask.back())) {
-
-	   if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
-
-	     //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
-	     // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
-	     // now we require a DeltaR cut between them to assess that lreco comes from lgen
-	     // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
-
-	     Double_t DeltaR_lreco_lgen_pair1 = 0.0;
-	     Double_t DeltaR_lreco_lgen_pair2 = 0.0;
-
-	     if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
-
-	       DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
-	       DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
-
-	     } else {
-	    
-	       DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
-	       DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
-
-	     }
-
-	     if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) {
-	     
-	       HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
-	       HZtoLLGenPt_MetBin[bin]->Fill(ZtoLLGenPt,newwgt);
-	       if (ZtoLLGenPt != 0) HZtoLLPt_RecoGenRatio_pdf_MetBin[bin]->Fill(ZtoLLRecoPt/ZtoLLGenPt,newwgt);
-
-	     }
-
-	   } else HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);  // if running on data just do this
-
-	 } 
-	 
-       }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
+     }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
        
    }                        // end of loop on entries
 
@@ -1230,6 +1273,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG)
    // for (Int_t i = 0; i < nMetBins; i++) {
    //   selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEventsNoHLT, lep_acc_eff[i] );
    // }
+
+   mySpaces(cout,2);
+   cout << "nEventsAfterMatchRecoGen = " << nEventsAfterMatchRecoGen << endl;
+   mySpaces(cout,2);
 
    mySpaces(cout,2);
    myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBinGenLep, metBinEdges, nMetBins);
