@@ -190,7 +190,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 
 	 inputFile >> parameterName >> name;
 	 cout << right << setw(20) << parameterName << "  " << left << name << endl;
-	 if (parameterName == "FILENAME_BASE") FILENAME_BASE = name; 
+	 if (parameterName == "FILENAME_BASE") {
+
+	   FILENAME_BASE = name; 
+	   if ( !ISDATA_FLAG && unweighted_event_flag) FILENAME_BASE += "_weq1";  // if using unit weight, add _weq1 to filename (weq1 means weight = 1)
+
+	 }
 
        }
 
@@ -433,8 +438,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    selection recoGenLepMatchC;
    if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-     if (fabs(LEP_PDG_ID) == 13) recoGenLepMatchC.set("recoGenMuMatchC","match of reco and gen muons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");      
-     else if (fabs(LEP_PDG_ID) == 11) recoGenLepMatchC.set("recoGenEleMatchC","match of reco and gen electrons (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");    
+     if (fabs(LEP_PDG_ID) == 13) recoGenLepMatchC.set("recoGenMuMatchC","reco-gen match (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");      
+     else if (fabs(LEP_PDG_ID) == 11) recoGenLepMatchC.set("recoGenEleMatchC","reco-gen match (DR = 0.1)","only for zlljets: looks for matching of reco and gen particles");    
   
    }
 
@@ -775,6 +780,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 if (!genLepFound_flag) continue;  // if not found gen ee or mumu for MC DYJetsToLL ( l = mu or e) skip the event. This makes things faster
 
 	 eventMask += genLepC.addToMask( genLepFound_flag );
+	 //eventMask += genLepC.addToMask( nLepGood == 2 && LepGood_pdgId[0] == -LepGood_pdgId[1] && fabs(LepGood_pdgId[0]) == 11);
 	 l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
 	 l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
 	 Zgen = l1gen + l2gen;
@@ -794,8 +800,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      }
 
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);  
-     // if (!recoLepFound_flag) continue;    // abort it to count events with genLep of a given flavour 
-
+     // if (!recoLepFound_flag) continue;    // abort it to count events with genLep of a given flavour (if uncommented, I can't count how many genLep I have)
+     //firstIndex = 0;
+     //secondIndex = 1;
      l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
      l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
      Zreco = l1reco + l2reco;
@@ -906,6 +913,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
      // end of eventMask building
 
+     // test matching of reco and gen lep for DY MC 
      if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
        //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
@@ -1291,6 +1299,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
    }
 
+   mySpaces(myfile,2);
+   if (!ISDATA_FLAG && unweighted_event_flag) myfile << "======   Using unweighted events (w = 1)   ======" << endl;
    mySpaces(myfile,3);
    //selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
