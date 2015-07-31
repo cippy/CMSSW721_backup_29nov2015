@@ -607,6 +607,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
    TH1D *HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
    TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);
+   TH1D *Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
    TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);
    TH1D *HnjetsDistributions = new TH1D("HnjetsDistribution","njets using nJetClean30",10,-0.5,9.5);
@@ -653,14 +654,14 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    TH1D *H_uParMinusZpT_Distribution = new TH1D("H_uParMinusZpT_Distribution","",50,-200,200);
 
    TH1D *H_uPerp_VS_Nvtx[NVTXS];
-   TH1D *H_uPar_VS_Nvtx[NVTXS]; 
-   TH1D *H_uPar_VS_Nvtx_lowZpT[NVTXS];
+   TH1D *H_uParMinusZpT_VS_Nvtx[NVTXS]; 
+   TH1D *H_uParMinusZpT_VS_Nvtx_lowZpT[NVTXS];
  
    for (Int_t i = 0; i < NVTXS; i++) {
 
      H_uPerp_VS_Nvtx[i] = new TH1D(Form("H_uPerp_VS_Nvtx_nvtx%i",FIRST_NVTX+i),"",80,-200,200);  // 5 GeV bins 
-     H_uPar_VS_Nvtx[i] = new TH1D(Form("H_uPar_VS_Nvtx_nvtx%i",FIRST_NVTX+i),"ZpT in [250,500]GeV",80,-200,200);  // 5 GeV bins
-     H_uPar_VS_Nvtx_lowZpT[i] = new TH1D(Form("H_uPar_VS_Nvtx_lowZpT_nvtx%i",FIRST_NVTX+i),"ZpT in [50,250]GeV",80,-200,200);  // 5 GeV bins
+     H_uParMinusZpT_VS_Nvtx[i] = new TH1D(Form("H_uParMinusZpT_VS_Nvtx_nvtx%i",FIRST_NVTX+i),"ZpT in [250,500]GeV",80,-200,200);  // 5 GeV bins
+     H_uParMinusZpT_VS_Nvtx_lowZpT[i] = new TH1D(Form("H_uParMinusZpT_VS_Nvtx_lowZpT_nvtx%i",FIRST_NVTX+i),"ZpT in [50,250]GeV",80,-200,200);  // 5 GeV bins
 
    }
 
@@ -691,10 +692,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    }
 
    TH1D *H_uPerp_VS_ZpT[nBinsForResponse];  
-   TH1D *H_uPar_VS_ZpT[nBinsForResponse];     // actually it will be (u_par-ZpT)
-   TH1D *H_uPar_ZpT_ratio[nBinsForResponse];  // for the response curve
+   TH1D *H_uParMinusZpT_VS_ZpT[nBinsForResponse];    // actually it will be (u_par-ZpT)
+   TH1D *H_uPar_ZpT_ratio[nBinsForResponse];         // for the response curve: we will compute response in many ways. Here we use <uPar/ZpT>
+   TH1D *H_uParMinusZpT_ZpT_ratio[nBinsForResponse]; // here we use <(uPar-ZpT)/ZpT> and will add back 1, so we get the same as above
    TH1D *HZptBinned[nBinsForResponse];
-
    
    TH1D *H_uPar_ZpT_ratio_0jets[nBinsForResponse_0jets];  // for the response curve in events with nJetClean30 = 0
 
@@ -709,8 +710,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // in the following histogram , range must include negative value: I saw that for low ZoT this distribution tends to be flat, thus if range goes from 0 to 2 (as it was before) the 
      //mean for ZpT tending to 0 will be 1 and not 0 as we would expect.
      H_uPar_ZpT_ratio[i] = new TH1D(Form("H_uPar_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
+     H_uParMinusZpT_ZpT_ratio[i] = new TH1D(Form("H_uParMinusZpT_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0);
      H_uPerp_VS_ZpT[i] = new TH1D(Form("H_uPerp_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
-     H_uPar_VS_ZpT[i] = new TH1D(Form("H_uPar_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
+     H_uParMinusZpT_VS_ZpT[i] = new TH1D(Form("H_uParMinusZpT_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
      if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
 
    }
@@ -938,8 +940,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 
 	 }
        
-	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recoGenLepMatchC.addToMask(1);
-	 else recoGenLepMatchC.addToMask(0);
+	 if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) eventMask += recoGenLepMatchC.addToMask(1);
+	 else eventMask += recoGenLepMatchC.addToMask(0);
 
        }
 
@@ -985,6 +987,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
 	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
 	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	 Hjet2ptDistribution->Fill(JetClean_pt[1],newwgt);
 	 HvtxDistribution->Fill(nVert,newwgt);
 	 HnjetsDistributions->Fill(nJetClean30,newwgt);
 
@@ -996,6 +999,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	 HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
 	 HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
 	 Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
+	 Hjet2ptDistribution->Fill(JetClean_pt[1],newwgt);
 	 HvtxDistribution->Fill(nVert,newwgt);
 	 HnjetsDistributions->Fill(nJetClean30,newwgt);
 
@@ -1028,11 +1032,11 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	     
 	   if (ZtoLLRecoPt < 250 ) {
 
-	     H_uPar_VS_Nvtx_lowZpT[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
+	     H_uParMinusZpT_VS_Nvtx_lowZpT[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
 	     
 	   } else if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
 
-	     H_uPar_VS_Nvtx[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
+	     H_uParMinusZpT_VS_Nvtx[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
 	 
 	   }       
     
@@ -1048,9 +1052,10 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	   Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
 	   //cout<<"bin = "<<bin<<endl;
 	   HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
-	   H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);     //the mean value of this histogram is the response
+	   H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);          //the mean value of this histogram is the response
+	   H_uParMinusZpT_ZpT_ratio[respBin]->Fill(uparMinusZrecoPt/ZtoLLRecoPt,newwgt);  //the mean value of this histogram +1 is the response
 	   H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
-	   H_uPar_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
+	   H_uParMinusZpT_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
 	   if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
 
 	 }
@@ -1106,8 +1111,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
    for (Int_t i = 0; i < NVTXS; i++) {
      xValues[i] = i + FIRST_NVTX;
-     yValues[i] = H_uPar_VS_Nvtx_lowZpT[i]->GetRMS();
-     yValuesErr[i] = H_uPar_VS_Nvtx_lowZpT[i]->GetRMSError();
+     yValues[i] = H_uParMinusZpT_VS_Nvtx_lowZpT[i]->GetRMS();
+     yValuesErr[i] = H_uParMinusZpT_VS_Nvtx_lowZpT[i]->GetRMSError();
    }
 
    TGraphErrors *GresolutionMetNoLepParZvsNvtx_lowZpT = new TGraphErrors(NVTXS,xValues,yValues,0,yValuesErr);
@@ -1121,8 +1126,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresolutionMetNoLepParZvsNvtx_lowZpT->Write();
 
    for (Int_t i = 0; i < NVTXS; i++) {
-     yValues[i] = H_uPar_VS_Nvtx[i]->GetRMS();
-     yValuesErr[i] = H_uPar_VS_Nvtx[i]->GetRMSError();
+     yValues[i] = H_uParMinusZpT_VS_Nvtx[i]->GetRMS();
+     yValuesErr[i] = H_uParMinusZpT_VS_Nvtx[i]->GetRMSError();
    }
 
    TGraphErrors *GresolutionMetNoLepParZvsNvtx = new TGraphErrors(NVTXS,xValues,yValues,0,yValuesErr);
@@ -1150,19 +1155,95 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresolutionMetNoLepOrtZvsNvtx->SetName("gr_resolution_uPerp_vs_Nvtx");
    GresolutionMetNoLepOrtZvsNvtx->Write();
 
-   // response curve
-
-   Double_t response[nBinsForResponse];
-   Double_t responseErr[nBinsForResponse];
+   // resolution vs ZpT
+   
    Double_t meanZpt[nBinsForResponse];
    Double_t meanZptErr[nBinsForResponse];
+   Double_t resoMetNoLepParZvsZpt[nBinsForResponse];
+   Double_t resoMetNoLepParZvsZptErr[nBinsForResponse];
+   Double_t resoMetNoLepOrtZvsZpt[nBinsForResponse];
+   Double_t resoMetNoLepOrtZvsZptErr[nBinsForResponse];
 
    for (Int_t i = 0; i < nBinsForResponse; i++) {
+
      meanZpt[i] = HZptBinned[i]->GetMean();
      meanZptErr[i] = HZptBinned[i]->GetMeanError();
+     resoMetNoLepParZvsZpt[i] = H_uParMinusZpT_VS_ZpT[i]->GetRMS();
+     resoMetNoLepParZvsZptErr[i] = H_uParMinusZpT_VS_ZpT[i]->GetRMSError();
+     resoMetNoLepOrtZvsZpt[i] = H_uPerp_VS_ZpT[i]->GetRMS();
+     resoMetNoLepOrtZvsZptErr[i] = H_uPerp_VS_ZpT[i]->GetRMSError();
+
+   }
+
+   TGraphErrors *GresolutionMetNoLepParZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepParZvsZpt,meanZptErr,resoMetNoLepParZvsZptErr);
+   GresolutionMetNoLepParZvsZpt->SetTitle("resolution || from histogram's RMS");
+   GresolutionMetNoLepParZvsZpt->Draw("AP");
+   GresolutionMetNoLepParZvsZpt->SetMarkerStyle(7);  // 7 is a medium dot
+   GresolutionMetNoLepParZvsZpt->GetXaxis()->SetTitle("Zpt [GeV]");
+   GresolutionMetNoLepParZvsZpt->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
+   GresolutionMetNoLepParZvsZpt->GetYaxis()->SetTitleOffset(1.2); 
+   GresolutionMetNoLepParZvsZpt->SetName("gr_resolution_uPar_vs_ZpT");
+   GresolutionMetNoLepParZvsZpt->Write();
+
+   TGraphErrors *GresolutionMetNoLepOrtZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepOrtZvsZpt,meanZptErr,resoMetNoLepOrtZvsZptErr);
+   GresolutionMetNoLepOrtZvsZpt->SetTitle("resolution _|_ from histogram's RMS");
+   GresolutionMetNoLepOrtZvsZpt->Draw("AP");
+   GresolutionMetNoLepOrtZvsZpt->SetMarkerStyle(7);
+   GresolutionMetNoLepOrtZvsZpt->GetXaxis()->SetTitle("Zpt [GeV]");
+   GresolutionMetNoLepOrtZvsZpt->GetYaxis()->SetTitle("#sigma (u_#perp ) [GeV]");
+   GresolutionMetNoLepOrtZvsZpt->GetYaxis()->SetTitleOffset(1.2); 
+   GresolutionMetNoLepOrtZvsZpt->SetName("gr_resolution_uPerp_vs_ZpT");
+   GresolutionMetNoLepOrtZvsZpt->Write();
+
+   // response curve: it can be defined in many ways
+
+   Double_t response[nBinsForResponse];              // <uPar/ZpT>  this is somewhat biased
+   Double_t responseErr[nBinsForResponse];
+
+   Double_t response_gausFit[nBinsForResponse];      // <Upar-ZpT>/<ZpT>  + 1: numerator from a gaussian fit (we use gaussian mean since we look for the peak)   
+   Double_t responseErr_gausFit[nBinsForResponse];
+   TFitResultPtr ptrGausFit;
+   Double_t meanUparMinusZpt_gausFit[nBinsForResponse];       // will contain <u_par - ZpT> taken from a gaussian fit
+   Double_t meanUparMinusZptErr_gausFit[nBinsForResponse];    // will contain uncertainty on <u_par - ZpT> taken from a gaussian fit
+
+   Double_t response_gausFit_bis[nBinsForResponse];    // <Upar-ZpT/ZpT>  + 1: mean value from a gaussian fit (we use gaussian mean since we look for the peak)   
+   Double_t responseErr_gausFit_bis[nBinsForResponse];
+   TFitResultPtr ptrGausFit_bis;
+   Double_t mean_UparMinusZpt_ZpT_ratio_gausFit_bis[nBinsForResponse];       // will contain <u_par - ZpT> taken from a gaussian fit
+   Double_t mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[nBinsForResponse];    
+  
+   // using <A/B> is different from using <A>/<B>. In general <f(x,y)> != f(<x>,<y>). The two relation coincide if the variance of x and y can be neglected or
+   // the second partial derivatives of f wrt x and y are small enough (note that here is also uPar = uPar(ZpT) so that we actually have 1 independent variable)
+
+   for (Int_t i = 0; i < nBinsForResponse; i++) {    
      response[i] = H_uPar_ZpT_ratio[i]->GetMean();
      responseErr[i] = H_uPar_ZpT_ratio[i]->GetMeanError();
      //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
+
+     // using "(<u_par -ZpT> / <ZpT>) + 1" to compute response (adding 1 because that ratio is centered around 0). <.> is the mean value
+     // do the fit between -3.5 RMS and + 3.5 RMS (found to be good enough) with a gaussian to get mean
+     // option WL use loglikelihood fit with weighted histograms (better if there are empty bins)
+     // Q is quiet mode (minimum printing on stdout). V prints everything. Default option is between Q and V
+     // S is necessary to pass object and access to fit parameter
+
+     Double_t tmpRMS = H_uParMinusZpT_VS_ZpT[i]->GetRMS();            // temporary variable with distribution's RMS
+     ptrGausFit = H_uParMinusZpT_VS_ZpT[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);  
+     meanUparMinusZpt_gausFit[i] =  ptrGausFit->Parameter(1);        // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
+     meanUparMinusZptErr_gausFit[i] =  ptrGausFit->ParError(1);
+     response_gausFit[i] = (meanUparMinusZpt_gausFit[i] / meanZpt[i]);    // in a second moment, adding 1 to response, otherwise it would be centered around 0
+     responseErr_gausFit[i] = response_gausFit[i] * sqrt( (meanUparMinusZptErr_gausFit[i]*meanUparMinusZptErr_gausFit[i] / (meanUparMinusZpt_gausFit[i]*meanUparMinusZpt_gausFit[i])) + (meanZptErr[i]*meanZptErr[i] / (meanZpt[i]*meanZpt[i])));     // for the uncertainty, using response BEFORE adding 1 
+     response_gausFit[i] += 1.;
+     // uncertainty computed assuming uncorrelated numerator and denominator
+
+     // now using "(<u_par -ZpT / ZpT>) + 1" to compute response (adding 1 because that ratio is centered around 0)
+
+     tmpRMS = H_uParMinusZpT_ZpT_ratio[i]->GetRMS();
+     ptrGausFit_bis = H_uParMinusZpT_ZpT_ratio[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);  
+     mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] =  ptrGausFit_bis->Parameter(1);  // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
+     mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] =  ptrGausFit_bis->ParError(1);
+     response_gausFit_bis[i] = mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] + 1.;  
+     responseErr_gausFit_bis[i] = mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i]; // for the uncertainty, using response BEFORE adding 1 
+
    }
 
    TGraphErrors *GresponseCurve = new TGraphErrors(nBinsForResponse,meanZpt,response,meanZptErr,responseErr);
@@ -1175,6 +1256,28 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresponseCurve->GetYaxis()->SetTitleOffset(1.4); 
    GresponseCurve->SetName("gr_responseCurve");
    GresponseCurve->Write();
+
+   TGraphErrors *GresponseCurve_gausFit = new TGraphErrors(nBinsForResponse,meanZpt,response_gausFit,meanZptErr,responseErr_gausFit);
+   GresponseCurve_gausFit->SetTitle("response curve as <uPar-ZpT>/<ZpT> +1; numerator from mean of gaussian fit (mode of distribution)");
+   GresponseCurve_gausFit->Draw("AP");
+   GresponseCurve_gausFit->SetMarkerStyle(7);    // 7 is a medium dot
+   GresponseCurve_gausFit->GetXaxis()->SetTitle("ZpT [GeV]");
+   GresponseCurve_gausFit->GetYaxis()->SetTitle(" < u_{||} - ZpT > / < ZpT > + 1");
+   GresponseCurve_gausFit->GetYaxis()->SetRangeUser(0.0, 1.1);
+   GresponseCurve_gausFit->GetYaxis()->SetTitleOffset(1.4); 
+   GresponseCurve_gausFit->SetName("gr_responseCurve_gausFit");
+   GresponseCurve_gausFit->Write();
+
+   TGraphErrors *GresponseCurve_gausFit_bis = new TGraphErrors(nBinsForResponse,meanZpt,response_gausFit_bis,meanZptErr,responseErr_gausFit_bis);
+   GresponseCurve_gausFit_bis->SetTitle("response curve as <uPar-ZpT/ZpT> +1, mean from mean gaussian fit (mode of the distribution)");
+   GresponseCurve_gausFit_bis->Draw("AP");
+   GresponseCurve_gausFit_bis->SetMarkerStyle(7);    // 7 is a medium dot
+   GresponseCurve_gausFit_bis->GetXaxis()->SetTitle("ZpT [GeV]");
+   GresponseCurve_gausFit_bis->GetYaxis()->SetTitle(" < u_{||} - ZpT / ZpT > + 1");
+   GresponseCurve_gausFit_bis->GetYaxis()->SetRangeUser(0.0, 1.1);
+   GresponseCurve_gausFit_bis->GetYaxis()->SetTitleOffset(1.4); 
+   GresponseCurve_gausFit_bis->SetName("gr_responseCurve_gausFit_bis");
+   GresponseCurve_gausFit_bis->Write();
 
    Double_t response_0jets[nBinsForResponse_0jets];
    Double_t responseErr_0jets[nBinsForResponse_0jets];
@@ -1199,40 +1302,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
    GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
    GresponseCurve_0jets->Write();
-
-   // resolution vs ZpT
-
-   Double_t resoMetNoLepParZvsZpt[nBinsForResponse];
-   Double_t resoMetNoLepParZvsZptErr[nBinsForResponse];
-   Double_t resoMetNoLepOrtZvsZpt[nBinsForResponse];
-   Double_t resoMetNoLepOrtZvsZptErr[nBinsForResponse];
-
-   for (Int_t i = 0; i < nBinsForResponse; i++) {
-     resoMetNoLepParZvsZpt[i] = H_uPar_VS_ZpT[i]->GetRMS();
-     resoMetNoLepParZvsZptErr[i] = H_uPar_VS_ZpT[i]->GetRMSError();
-     resoMetNoLepOrtZvsZpt[i] = H_uPerp_VS_ZpT[i]->GetRMS();
-     resoMetNoLepOrtZvsZptErr[i] = H_uPerp_VS_ZpT[i]->GetRMSError();
-   }
-
-   TGraphErrors *GresolutionMetNoLepParZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepParZvsZpt,meanZptErr,resoMetNoLepParZvsZptErr);
-   GresolutionMetNoLepParZvsZpt->SetTitle("resolution || from histogram's RMS");
-   GresolutionMetNoLepParZvsZpt->Draw("AP");
-   GresolutionMetNoLepParZvsZpt->SetMarkerStyle(7);  // 7 is a medium dot
-   GresolutionMetNoLepParZvsZpt->GetXaxis()->SetTitle("Zpt [GeV]");
-   GresolutionMetNoLepParZvsZpt->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
-   GresolutionMetNoLepParZvsZpt->GetYaxis()->SetTitleOffset(1.2); 
-   GresolutionMetNoLepParZvsZpt->SetName("gr_resolution_uPar_vs_ZpT");
-   GresolutionMetNoLepParZvsZpt->Write();
-
-   TGraphErrors *GresolutionMetNoLepOrtZvsZpt = new TGraphErrors(nBinsForResponse,meanZpt,resoMetNoLepOrtZvsZpt,meanZptErr,resoMetNoLepOrtZvsZptErr);
-   GresolutionMetNoLepOrtZvsZpt->SetTitle("resolution _|_ from histogram's RMS");
-   GresolutionMetNoLepOrtZvsZpt->Draw("AP");
-   GresolutionMetNoLepOrtZvsZpt->SetMarkerStyle(7);
-   GresolutionMetNoLepOrtZvsZpt->GetXaxis()->SetTitle("Zpt [GeV]");
-   GresolutionMetNoLepOrtZvsZpt->GetYaxis()->SetTitle("#sigma (u_#perp ) [GeV]");
-   GresolutionMetNoLepOrtZvsZpt->GetYaxis()->SetTitleOffset(1.2); 
-   GresolutionMetNoLepOrtZvsZpt->SetName("gr_resolution_uPerp_vs_ZpT");
-   GresolutionMetNoLepOrtZvsZpt->Write();
 
    // end of TGraphs
 
