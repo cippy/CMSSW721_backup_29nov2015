@@ -14,9 +14,11 @@
 #include <TROOT.h>
 #include <TFile.h>
 #include "EmanTreeAnalysis.h"
+#include "AdishTreeAnalysis.h"
 #include "whichApplication.h"
 
 using namespace myAnalyzerTEman;
+using namespace myAnalyzerTAdish;
 
 using namespace std;
 
@@ -503,6 +505,8 @@ int main(int argc, char* argv[]) {
 
 #if Application == 9
 
+  
+
   if (argc < 2) {
     std::cout << "Not enough arguments: launch as -> "; 
     std::cout << argv[0] << " inputfile " <<std::endl;
@@ -520,12 +524,27 @@ int main(int argc, char* argv[]) {
   string option = "";
 
   Int_t unweighted_event_flag = 0;  // this flag tells the user if the MC uses unit weight (using w = 1 is basically for debugging purposes)
+  Int_t adishTree_flag = 0;  // tells user I'm using Adish's tree
 
-  if (argc >=2 ) {
+  if (argc > 2 ) {
 
     for (Int_t i = 2; i < argc; i++) {   // look at all possible options passed
 
-      if (argv[i]  == "-nw" ) unweighted_event_flag = 1;    //-nw option stands for "no weight"
+      string thisArgument(argv[i]);
+
+      if (thisArgument  == "-nw" ) {
+	
+	unweighted_event_flag = 1;    //-nw option stands for "no weight"
+	cout << "Option " << thisArgument << " passed: using no event weight (w =1) if allowed" << std::endl;
+
+      }
+
+      if (thisArgument  == "-at" ) {   // "at" means Adish's tree
+	     
+	adishTree_flag = 1;
+	cout << "Option " << thisArgument << " passed: using Adish's trees" << std::endl;
+
+      }
 
     }
 
@@ -608,16 +627,18 @@ int main(int argc, char* argv[]) {
 
    }
 
+   //if (!isdata_flag && unweighted_event_flag) std::cout << "Using unweighted events (w = 1) " << std::endl;
    //std::cout<<"Using Emanuele's trees with no skim"<<std::endl;
    std::cout<< std::endl;
-   std::cout<<"Using Emanuele's trees "<<std::endl;
+   if (adishTree_flag) std::cout<<"Using Adish's trees "<<std::endl;
+   else std::cout<<"Using Emanuele's trees "<<std::endl;
    std::cout << "Creating chain ..." << std::endl;
    TChain* chain = new TChain("tree");
    //chain->Add("/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/tree.root");
    chain->Add(treePath.c_str());
    TChain* chFriend = new TChain("mjvars/t");
    //chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-   chain->AddFriend("mjvars/t",friendTreePath.c_str());
+   if (!adishTree_flag) chain->AddFriend("mjvars/t",friendTreePath.c_str());
 
   if(!chain) {
     std::cout << "Error: chain not created. End of programme" << std::endl;
@@ -627,7 +648,12 @@ int main(int argc, char* argv[]) {
   std::cout<<chain->GetEntries()<<std::endl;      
   //================ Run Analysis
 
-  
+  if (adishTree_flag) {
+
+    zlljets_resoResp_forAdish tree( chain );
+    tree.loop(configFileName, isdata_flag, unweighted_event_flag);
+
+  }  
 
   if ( !(std::strcmp("axel",option.c_str()))) {
 
