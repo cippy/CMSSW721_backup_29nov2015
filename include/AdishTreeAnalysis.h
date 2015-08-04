@@ -33,6 +33,16 @@ namespace myAnalyzerTAdish {
 
   };
 
+  class zlljets_resoResp_forAdish : public adishTree {
+  public:
+
+    zlljets_resoResp_forAdish(TTree *tree);
+    virtual ~zlljets_resoResp_forAdish() { std::cout<<"~zlljets_resoResp_forAdish() called"<<std::endl; }
+  
+    void loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag);
+
+  };
+
 }
 #endif
 
