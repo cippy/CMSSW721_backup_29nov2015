@@ -232,8 +232,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      HLT_LEP2PT = parameterValue[27];
      HLT_LEP1ETA = parameterValue[28];
      HLT_LEP2ETA = parameterValue[29];
-     NVTXS = parameterValue[30];
-     FIRST_NVTX = parameterValue[31];
+     NVTXS = (Int_t) parameterValue[30];
+     FIRST_NVTX = (Int_t) parameterValue[31];
      METNOLEP_START = parameterValue[32];
      JETS_SELECTION_RESORESP_FLAG = (Int_t) parameterValue[33];
      PHOTON_VETO_RESORESP_FLAG = (Int_t) parameterValue[34];
@@ -1216,6 +1216,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    // the second partial derivatives of f wrt x and y are small enough (note that here is also uPar = uPar(ZpT) so that we actually have 1 independent variable)
 
    for (Int_t i = 0; i < nBinsForResponse; i++) {    
+
      response[i] = H_uPar_ZpT_ratio[i]->GetMean();
      responseErr[i] = H_uPar_ZpT_ratio[i]->GetMeanError();
      //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
@@ -1226,10 +1227,16 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // Q is quiet mode (minimum printing on stdout). V prints everything. Default option is between Q and V
      // S is necessary to pass object and access to fit parameter
 
-     Double_t tmpRMS = H_uParMinusZpT_VS_ZpT[i]->GetRMS();            // temporary variable with distribution's RMS
-     ptrGausFit = H_uParMinusZpT_VS_ZpT[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);  
-     meanUparMinusZpt_gausFit[i] =  ptrGausFit->Parameter(1);        // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
-     meanUparMinusZptErr_gausFit[i] =  ptrGausFit->ParError(1);
+     Double_t tmpRMS;                                                   // temporary variable with distribution's RMS
+     if (H_uParMinusZpT_VS_ZpT[i]->GetEntries() <= 5 ) {                // if empty histogram (including underflows and overflows) no fit is done
+       meanUparMinusZpt_gausFit[i] = 0.0;                               // actually the fit has no sense with few points
+       meanUparMinusZptErr_gausFit[i] = 0.0;
+     } else {
+       tmpRMS = H_uParMinusZpT_VS_ZpT[i]->GetRMS();
+       ptrGausFit = H_uParMinusZpT_VS_ZpT[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
+       meanUparMinusZpt_gausFit[i] = ptrGausFit->Parameter(1);      // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
+       meanUparMinusZptErr_gausFit[i] = ptrGausFit->ParError(1);
+     }
      response_gausFit[i] = (meanUparMinusZpt_gausFit[i] / meanZpt[i]);    // in a second moment, adding 1 to response, otherwise it would be centered around 0
      responseErr_gausFit[i] = response_gausFit[i] * sqrt( (meanUparMinusZptErr_gausFit[i]*meanUparMinusZptErr_gausFit[i] / (meanUparMinusZpt_gausFit[i]*meanUparMinusZpt_gausFit[i])) + (meanZptErr[i]*meanZptErr[i] / (meanZpt[i]*meanZpt[i])));     // for the uncertainty, using response BEFORE adding 1 
      response_gausFit[i] += 1.;
@@ -1237,10 +1244,15 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
      // now using "(<u_par -ZpT / ZpT>) + 1" to compute response (adding 1 because that ratio is centered around 0)
 
-     tmpRMS = H_uParMinusZpT_ZpT_ratio[i]->GetRMS();
-     ptrGausFit_bis = H_uParMinusZpT_ZpT_ratio[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);  
-     mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] =  ptrGausFit_bis->Parameter(1);  // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
-     mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] =  ptrGausFit_bis->ParError(1);
+     if ( H_uParMinusZpT_ZpT_ratio[i]->GetEntries() <= 5 ) {                 // if empty histogram (including underflows and overflows) no fit is done
+       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] = 0.0;                     // actually the fit has no sense with few points
+       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] = 0.0;
+     } else {
+       tmpRMS = H_uParMinusZpT_ZpT_ratio[i]->GetRMS();
+       ptrGausFit_bis = H_uParMinusZpT_ZpT_ratio[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
+       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] =  ptrGausFit_bis->Parameter(1);  // 1 is the mean (0 and 2 are normalization and sigma of gaussian)
+       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] =  ptrGausFit_bis->ParError(1);
+     }     
      response_gausFit_bis[i] = mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] + 1.;  
      responseErr_gausFit_bis[i] = mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i]; // for the uncertainty, using response BEFORE adding 1 
 
