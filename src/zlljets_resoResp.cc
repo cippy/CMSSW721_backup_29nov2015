@@ -1228,9 +1228,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // S is necessary to pass object and access to fit parameter
 
      Double_t tmpRMS;                                                   // temporary variable with distribution's RMS
-     if (H_uParMinusZpT_VS_ZpT[i]->GetEntries() <= 5 ) {                // if empty histogram (including underflows and overflows) no fit is done
-       meanUparMinusZpt_gausFit[i] = 0.0;                               // actually the fit has no sense with few points
-       meanUparMinusZptErr_gausFit[i] = 0.0;
+     if (H_uParMinusZpT_VS_ZpT[i]->GetEntries() <= 10 ) {                // if empty histogram (including underflows and overflows) no fit is done
+       meanUparMinusZpt_gausFit[i] = H_uParMinusZpT_VS_ZpT[i]->GetMean();                               // actually the fit has no sense with few points
+       meanUparMinusZptErr_gausFit[i] = H_uParMinusZpT_VS_ZpT[i]->GetMeanError();
      } else {
        tmpRMS = H_uParMinusZpT_VS_ZpT[i]->GetRMS();
        ptrGausFit = H_uParMinusZpT_VS_ZpT[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
@@ -1244,9 +1244,9 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
      // now using "(<u_par -ZpT / ZpT>) + 1" to compute response (adding 1 because that ratio is centered around 0)
 
-     if ( H_uParMinusZpT_ZpT_ratio[i]->GetEntries() <= 5 ) {                 // if empty histogram (including underflows and overflows) no fit is done
-       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] = 0.0;                     // actually the fit has no sense with few points
-       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] = 0.0;
+     if ( H_uParMinusZpT_ZpT_ratio[i]->GetEntries() <= 10 ) {                 // if empty histogram (including underflows and overflows) no fit is done
+       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] = H_uParMinusZpT_ZpT_ratio[i]->GetMean();                     // actually the fit has no sense with few points
+       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] = H_uParMinusZpT_ZpT_ratio[i]->GetMeanError();
      } else {
        tmpRMS = H_uParMinusZpT_ZpT_ratio[i]->GetRMS();
        ptrGausFit_bis = H_uParMinusZpT_ZpT_ratio[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
@@ -1314,6 +1314,52 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
    GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
    GresponseCurve_0jets->Write();
+
+   // correcting resolution of uPar for the response
+  
+   Int_t nPoints = GresolutionMetNoLepParZvsZpt->GetN();
+   TH1D* Hyresponse = new TH1D("Hyresponse","",nPoints,0,nPoints);
+   TH1D* Hyresopar = new TH1D("Hyresopar","",nPoints,0,nPoints);
+   Double_t xresopar;  // just to use TGraph::GetPoint()
+   Double_t yresopar[nPoints];  
+   Double_t yresoparErr[nPoints];
+   Double_t yresponse[nPoints];
+
+   for (Int_t i = 0; i < nPoints; i++) {
+
+     GresponseCurve_gausFit_bis->GetPoint(i,xresopar,yresponse[i]);
+     Hyresponse->SetBinContent(i+1, *(yresponse + i));
+     Hyresponse->SetBinError(i+1, GresponseCurve_gausFit_bis->GetErrorY(i));
+     GresolutionMetNoLepParZvsZpt->GetPoint(i,xresopar,yresopar[i]);
+     Hyresopar->SetBinContent(i+1, *(yresopar + i));
+     Hyresopar->SetBinError(i+1, GresolutionMetNoLepParZvsZpt->GetErrorY(i));
+
+   }
+
+   if ( !Hyresopar->Divide(Hyresponse) ) cout << " Error in Hyresopar->Divide(Hyresponse) " << endl; 
+   else {
+
+     for (Int_t i = 0; i < nPoints; i++) {
+
+       *(yresopar + i) = Hyresopar->GetBinContent(i+1);
+       *(yresoparErr + i) = Hyresopar->GetBinError(i+1);
+
+     }
+
+   }
+
+   TGraphErrors *GresolutionMetNoLepParZvsZpt_Corrected = new TGraphErrors(nBinsForResponse,meanZpt,yresopar,meanZptErr,yresoparErr);
+   GresolutionMetNoLepParZvsZpt_Corrected->SetTitle("resolution || from histogram's RMS, corrected for response");
+   GresolutionMetNoLepParZvsZpt_Corrected->Draw("AP");
+   GresolutionMetNoLepParZvsZpt_Corrected->SetMarkerStyle(7);  // 7 is a medium dot
+   GresolutionMetNoLepParZvsZpt_Corrected->GetXaxis()->SetTitle("Zpt [GeV]");
+   GresolutionMetNoLepParZvsZpt_Corrected->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
+   GresolutionMetNoLepParZvsZpt_Corrected->GetYaxis()->SetTitleOffset(1.2); 
+   GresolutionMetNoLepParZvsZpt_Corrected->SetName("gr_resolution_uPar_vs_ZpT_corrected");
+   GresolutionMetNoLepParZvsZpt_Corrected->Write();
+
+   delete Hyresponse;
+   delete Hyresopar;
 
    // end of TGraphs
 

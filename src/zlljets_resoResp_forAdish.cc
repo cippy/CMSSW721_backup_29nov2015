@@ -54,6 +54,28 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
 
   if (fChain == 0) return;
 
+  fChain->SetBranchStatus("*",0);  
+
+  fChain->SetBranchStatus("wgt",1);
+  fChain->SetBranchStatus("kfact",1);
+
+  fChain->SetBranchStatus("nvtx",1);
+  fChain->SetBranchStatus("zmass",1);
+  fChain->SetBranchStatus("zpt",1);
+  fChain->SetBranchStatus("zeta",1);
+  fChain->SetBranchStatus("zphi",1);
+  fChain->SetBranchStatus("pfmet",1);
+  fChain->SetBranchStatus("pfmetphi",1);
+  fChain->SetBranchStatus("metnohf",1);
+  fChain->SetBranchStatus("metnohfphi",1);
+  fChain->SetBranchStatus("amet",1);
+  fChain->SetBranchStatus("ametphi",1);
+  fChain->SetBranchStatus("bmet",1);
+  fChain->SetBranchStatus("bmetphi",1);
+  fChain->SetBranchStatus("njets",1);
+  fChain->SetBranchStatus("signaljetpt",1);
+  fChain->SetBranchStatus("secondjetpt",1);
+  
   char ROOT_FNAME[100];
   char TXT_FNAME[100];
   char FLAVOUR[10];                   // e.g. "ele", "mu"
@@ -72,6 +94,7 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
   Int_t NVTXS;                           // # of points for study of u_par and u_perp vs # of reconstructed vertices nvtx
   Int_t FIRST_NVTX;
   Double_t METNOLEP_START;
+  //string MET_TYPE_NAME;
   string FILENAME_BASE;
 
   ifstream inputFile(configFileName);
@@ -102,10 +125,12 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
 	cout << right << setw(20) << parameterName << "  " << left << name << endl;
 	if (parameterName == "FILENAME_BASE") {
 
-	  FILENAME_BASE = name + "_Adish"; // to distinguish from files done ith Emanuele's tree 
+	  FILENAME_BASE = name + "_Adish"; // to distinguish from files done with Emanuele's tree 
 	  if ( !ISDATA_FLAG && unweighted_event_flag) FILENAME_BASE += "_weq1";  // if using unit weight, add _weq1 to filename (weq1 means weight = 1)
 
 	}
+
+	//if (parameterName == "MET_TYPE_NAME") MET_TYPE_NAME = name;
 
       }
 
@@ -135,11 +160,21 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
   }
 
   TVector2 metNoLepTV;
-  TLorentzVector Zreco;
+  //TLorentzVector Zreco;
 
+  Double_t *metpt_ptr = NULL;
+  Double_t *metphi_ptr = NULL;
+
+  //if ( !(std::strcmp("pfmet",MET_TYPE_NAME.c_str())) ) {
+
+    metpt_ptr = &bmet;
+    metphi_ptr = &bmetphi;
+    FILENAME_BASE += "_bmet";
+    //}
+
+  Double_t metpt;
+  Double_t metphi;
   Double_t metNoLepPt;
-  Int_t nVert;
-  Double_t mZ1;
 
   //Double_t metBinEdges[] = {200., 250., 300., 350., 400., 500., 650., 1000.};
   Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
@@ -322,70 +357,80 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if(!ISDATA_FLAG && !unweighted_event_flag) newwgt = LUMI * weight;
+     if(!ISDATA_FLAG && !unweighted_event_flag) newwgt = LUMI * wgt * kfact;
 
-     Double_t ZtoLLRecoPt = 0;   // filled below
+     metpt = *metpt_ptr;
+     metphi = *metphi_ptr;
 
-     // HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);	 
+     TVector2 Zreco2D;
+     Zreco2D.SetMagPhi(zpt,zphi);
 
-     // HinvMass->Fill(mZ1,newwgt);
-     // HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
-     // HzptDistribution->Fill(ZtoLLRecoPt,newwgt);
-     // Hjet1ptDistribution->Fill(JetClean_pt[0],newwgt);
-     // Hjet2ptDistribution->Fill(JetClean_pt[1],newwgt);
-     // HvtxDistribution->Fill(nVert,newwgt);
-     // HnjetsDistributions->Fill(nJetClean30,newwgt);
+     //Zreco.SetPtEtaPhiM(zpt,zeta,zphi,zmass);
+     metNoLepTV.SetMagPhi(metpt,metphi);
+     metNoLepTV += Zreco2D; // adding Z to met
+     metNoLepPt = metNoLepTV.Mod();
 
-     TVector3 Zreco3D = Zreco.Vect();
-     Double_t dphiMetNoLepZ = metNoLepTV.DeltaPhi(Zreco3D.XYvector());
+     HzlljetsYieldsMetBinGenLep->Fill(metNoLepPt,newwgt);
+     HZtoLLRecoPt->Fill(zpt,newwgt);	 
+
+     HinvMass->Fill(zmass,newwgt);
+     HmetNoLepDistribution->Fill(metNoLepPt,newwgt);
+     HzptDistribution->Fill(zpt,newwgt);
+     Hjet1ptDistribution->Fill(signaljetpt,newwgt);
+     Hjet2ptDistribution->Fill(secondjetpt,newwgt);
+     HvtxDistribution->Fill(nvtx,newwgt);
+     HnjetsDistributions->Fill(njets,newwgt);    
+
+     //TVector3 Zreco3D = Zreco.Vect();
+     Double_t dphiMetNoLepZ = metNoLepTV.DeltaPhi(Zreco2D);
 
      Double_t u_par = metNoLepPt * TMath::Cos(dphiMetNoLepZ);  // actually u_par is minus this quantity, but then I do u_par-ZpT instead of u_par+ZpT
      Double_t u_perp = metNoLepPt * TMath::Sin(dphiMetNoLepZ);
-     Double_t uparMinusZrecoPt = u_par - ZtoLLRecoPt;
+     Double_t uparMinusZrecoPt = u_par - zpt;
 
      H_uPerp_Distribution->Fill(u_perp,newwgt);
      H_uParMinusZpT_Distribution->Fill(uparMinusZrecoPt,newwgt);
 
-     if (ZtoLLRecoPt > ZptBinEdges[0]) {  
+     if (zpt > ZptBinEdges[0]) {  
 
-       Int_t nvtxBin = nVert - FIRST_NVTX;
+       Int_t nvtxBin = nvtx - FIRST_NVTX;
        Int_t lastnvtx = NVTXS + FIRST_NVTX;
 
-       if ((nvtxBin >= 0) && (nVert < lastnvtx)) {
+       if ((nvtxBin >= 0) && (nvtx < lastnvtx)) {
 
 	 H_uPerp_VS_Nvtx[nvtxBin]->Fill(u_perp,newwgt);
 	     
-	 if (ZtoLLRecoPt < 250 ) {
+	 if (zpt < 250 ) {
 
 	   H_uParMinusZpT_VS_Nvtx_lowZpT[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
 	     
-	 } else if (ZtoLLRecoPt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
+	 } else if (zpt < 500) {                       // (met||-wzpt) distribution's width depends on Zpt, thus I use this range
 
 	   H_uParMinusZpT_VS_Nvtx[nvtxBin]->Fill(uparMinusZrecoPt,newwgt);
 	 
 	 }       
     
-       }  // end of   if ((nvtxBin >= 0) && (nVert < lastnvtx))
+       }  // end of   if ((nvtxBin >= 0) && (nvtx < lastnvtx))
 
        /**************************************************/
        // computing met responses
        /**************************************************/
 
        // first of all I make sure that wzpt is in the appropriate range
-       if ( ZtoLLRecoPt < ZptBinEdges[nBinsForResponse] ) {
+       if ( zpt < ZptBinEdges[nBinsForResponse] ) {
 
-	 Int_t respBin = myGetBin(ZtoLLRecoPt,ZptBinEdges,nBinsForResponse);
+	 Int_t respBin = myGetBin(zpt,ZptBinEdges,nBinsForResponse);
 	 //cout<<"bin = "<<bin<<endl;
-	 HZptBinned[respBin]->Fill(ZtoLLRecoPt,newwgt);        
-	 H_uPar_ZpT_ratio[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);          //the mean value of this histogram is the response
-	 H_uParMinusZpT_ZpT_ratio[respBin]->Fill(uparMinusZrecoPt/ZtoLLRecoPt,newwgt);  //the mean value of this histogram +1 is the response
+	 HZptBinned[respBin]->Fill(zpt,newwgt);        
+	 H_uPar_ZpT_ratio[respBin]->Fill(u_par/zpt,newwgt);          //the mean value of this histogram is the response
+	 H_uParMinusZpT_ZpT_ratio[respBin]->Fill(uparMinusZrecoPt/zpt,newwgt);  //the mean value of this histogram +1 is the response
 	 H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
 	 H_uParMinusZpT_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
-	 if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
+	 if (zpt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/zpt,newwgt);
 
        }
 
-     }            // end of if (ZtoLLRecoPt > ZptBinEdges[0])
+     }            // end of if (zpt > ZptBinEdges[0])
 
      // now entering analysis in bins of met
 
@@ -393,8 +438,8 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
 
        Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
        
-       HzlljetsInvMassMetBinGenLep[bin]->Fill(mZ1,newwgt); 
-       HZtoLLRecoPt_MetBin[bin]->Fill(ZtoLLRecoPt,newwgt);
+       HzlljetsInvMassMetBinGenLep[bin]->Fill(zmass,newwgt); 
+       HZtoLLRecoPt_MetBin[bin]->Fill(zpt,newwgt);
 
      }
 
@@ -532,9 +577,9 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
      // S is necessary to pass object and access to fit parameter
 
      Double_t tmpRMS;                                                   // temporary variable with distribution's RMS
-     if (H_uParMinusZpT_VS_ZpT[i]->GetEntries() <= 5 ) {                // if empty histogram (including underflows and overflows) no fit is done
-       meanUparMinusZpt_gausFit[i] = 0.0;                               // actually the fit has no sense with few points
-       meanUparMinusZptErr_gausFit[i] = 0.0;
+     if (H_uParMinusZpT_VS_ZpT[i]->GetEntries() <= 10 ) {                // if empty histogram (including underflows and overflows) no fit is done
+       meanUparMinusZpt_gausFit[i] = H_uParMinusZpT_VS_ZpT[i]->GetMean();                               // actually the fit has no sense with few points
+       meanUparMinusZptErr_gausFit[i] = H_uParMinusZpT_VS_ZpT[i]->GetMeanError();
      } else {
        tmpRMS = H_uParMinusZpT_VS_ZpT[i]->GetRMS();
        ptrGausFit = H_uParMinusZpT_VS_ZpT[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
@@ -548,9 +593,9 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
 
      // now using "(<u_par -ZpT / ZpT>) + 1" to compute response (adding 1 because that ratio is centered around 0)
 
-     if ( H_uParMinusZpT_ZpT_ratio[i]->GetEntries() <= 5 ) {                 // if empty histogram (including underflows and overflows) no fit is done
-       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] = 0.0;                     // actually the fit has no sense with few points
-       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] = 0.0;
+     if ( H_uParMinusZpT_ZpT_ratio[i]->GetEntries() <= 10 ) {                 // if empty histogram (including underflows and overflows) no fit is done
+       mean_UparMinusZpt_ZpT_ratio_gausFit_bis[i] = H_uParMinusZpT_ZpT_ratio[i]->GetMean();                     // actually the fit has no sense with few points
+       mean_UparMinusZpt_ZpT_ratioErr_gausFit_bis[i] = H_uParMinusZpT_ZpT_ratio[i]->GetMeanError();
      } else {
        tmpRMS = H_uParMinusZpT_ZpT_ratio[i]->GetRMS();
        ptrGausFit_bis = H_uParMinusZpT_ZpT_ratio[i]->Fit("gaus","Q S","",-3.5*tmpRMS,3.5*tmpRMS);
@@ -618,6 +663,52 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
    GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
    GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
    GresponseCurve_0jets->Write();
+
+   // correcting resolution of uPar for the response
+  
+   Int_t nPoints = GresolutionMetNoLepParZvsZpt->GetN();
+   TH1D* Hyresponse = new TH1D("Hyresponse","",nPoints,0,nPoints);
+   TH1D* Hyresopar = new TH1D("Hyresopar","",nPoints,0,nPoints);
+   Double_t xresopar;  // just to use TGraph::GetPoint()
+   Double_t yresopar[nPoints];  
+   Double_t yresoparErr[nPoints];
+   Double_t yresponse[nPoints];
+
+   for (Int_t i = 0; i < nPoints; i++) {
+
+     GresponseCurve_gausFit_bis->GetPoint(i,xresopar,yresponse[i]);
+     Hyresponse->SetBinContent(i+1, *(yresponse + i));
+     Hyresponse->SetBinError(i+1, GresponseCurve_gausFit_bis->GetErrorY(i));
+     GresolutionMetNoLepParZvsZpt->GetPoint(i,xresopar,yresopar[i]);
+     Hyresopar->SetBinContent(i+1, *(yresopar + i));
+     Hyresopar->SetBinError(i+1, GresolutionMetNoLepParZvsZpt->GetErrorY(i));
+
+   }
+
+   if ( !Hyresopar->Divide(Hyresponse) ) cout << " Error in Hyresopar->Divide(Hyresponse) " << endl; 
+   else {
+
+     for (Int_t i = 0; i < nPoints; i++) {
+
+       *(yresopar + i) = Hyresopar->GetBinContent(i+1);
+       *(yresoparErr + i) = Hyresopar->GetBinError(i+1);
+
+     }
+
+   }
+
+   TGraphErrors *GresolutionMetNoLepParZvsZpt_Corrected = new TGraphErrors(nBinsForResponse,meanZpt,yresopar,meanZptErr,yresoparErr);
+   GresolutionMetNoLepParZvsZpt_Corrected->SetTitle("resolution || from histogram's RMS, corrected for response");
+   GresolutionMetNoLepParZvsZpt_Corrected->Draw("AP");
+   GresolutionMetNoLepParZvsZpt_Corrected->SetMarkerStyle(7);  // 7 is a medium dot
+   GresolutionMetNoLepParZvsZpt_Corrected->GetXaxis()->SetTitle("Zpt [GeV]");
+   GresolutionMetNoLepParZvsZpt_Corrected->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
+   GresolutionMetNoLepParZvsZpt_Corrected->GetYaxis()->SetTitleOffset(1.2); 
+   GresolutionMetNoLepParZvsZpt_Corrected->SetName("gr_resolution_uPar_vs_ZpT_corrected");
+   GresolutionMetNoLepParZvsZpt_Corrected->Write();
+
+   delete Hyresponse;
+   delete Hyresopar;
 
    // end of TGraphs
 
