@@ -40,19 +40,26 @@
 
 using namespace std;
 
-void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu") {
+void zlljets_distributions_dataMC(const Int_t plotsForAdish = 0) {
 
   string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/distributions/dataMC_comparison/";
+  if (plotsForAdish) plotDirectoryPath += "";
   string plotFileExtension = ".pdf";
 
+  char* suffix;
+  if (plotsForAdish) suffix = "_Adish_pfmet_mumu";
+  else suffix = "_GLTcutZmass80to100_mumu";
+
   vector<string> MC_TexLabel;
-  MC_TexLabel.push_back("Z(#tau#tau)+jets MC");
+  if (plotsForAdish) MC_TexLabel.push_back("Z(#tau#tau)+jets MC");
   MC_TexLabel.push_back("TT+Jets MC");
   MC_TexLabel.push_back("Z(#mu#mu)+jets MC");
 
   string data_TexLabel = "data"; 
 
-  string DataFileName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100_DATA.root";
+  string DataFileName;
+  if (plotsForAdish) DataFileName = "zmumujets_resoResp_spring15_50ns_Adish_pfmet_DATA.root";
+  else DataFileName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100_DATA.root";
 
   vector<TH1D*> hMCinvMass;
   vector<TH1D*> hMCmetNoLep;
@@ -73,16 +80,30 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   TH1D* hDatanjets;
 
   vector<string> MCfileName;
-  MCfileName.push_back("ztautaujets_mumu_resoResp_spring15_50ns_GLTcutZmass80to100.root");
-  MCfileName.push_back("ttjets_mumu_resoResp_spring15_50ns_GLTcutZmass80to100.root");
-  MCfileName.push_back("zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100.root");  
+  if (plotsForAdish) {
+
+    MCfileName.push_back("ttbar_mumu_resoResp_spring15_50ns_Adish_pfmet.root");
+    MCfileName.push_back("zmumujets_resoResp_spring15_50ns_Adish_pfmet.root");  
+
+  } else {
+
+    MCfileName.push_back("ztautaujets_mumu_resoResp_spring15_50ns_GLTcutZmass80to100.root");
+    MCfileName.push_back("ttjets_mumu_resoResp_spring15_50ns_GLTcutZmass80to100.root");
+    MCfileName.push_back("zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100.root");  
+
+  }
 
   Int_t nFiles = (Int_t)MCfileName.size();
-  Int_t histColor[] = {kRed,kBlue,kCyan};
+  Int_t histColorDefault[] = {kRed,kBlue,kCyan};
+  Int_t histColorAdish[] = {kBlue,kCyan};
+  Int_t *histColor = NULL;
+
+  if (plotsForAdish) histColor = histColorAdish;
+  else histColor = histColorDefault;
 
   for(Int_t i = 0; i < nFiles; i++) {
     cout<<"fileName : "<<MCfileName[i]<<endl;
-    
+
     TFile* f = TFile::Open(MCfileName[i].c_str(),"READ");
     if (!f || !f->IsOpen()) {
       cout<<"*******************************"<<endl;
@@ -235,12 +256,12 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   TLegend *leguParMinusZpt = new TLegend(0.7,0.7,0.89,0.89);
   cuParMinusZpt->SetLogy();
   hstack_uParMinusZpt->Draw("HE");
-  hstack_uParMinusZpt->SetMinimum(0.3);
+  hstack_uParMinusZpt->SetMinimum(0.03);
   hstack_uParMinusZpt->SetMaximum(3000.0);
   hstack_uParMinusZpt->Draw("E SAME");
   hDatauParMinusZpt->SetMarkerStyle(8); // large dot
   hDatauParMinusZpt->Draw("EX0 SAME"); //X0 doesn't draw x error
-  hDatauParMinusZpt->GetYaxis()->SetRangeUser(0.3,3050.0);
+  hDatauParMinusZpt->GetYaxis()->SetRangeUser(0.03,3050.0);
   hstack_uParMinusZpt->GetXaxis()->SetTitle("u_{||} - Z_{pT} [GeV]");
   hstack_uParMinusZpt->GetXaxis()->SetTitleSize(0.04);
   hstack_uParMinusZpt->GetYaxis()->SetTitle("events / 8 GeV");
@@ -260,7 +281,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   TLegend *leguPerp = new TLegend(0.7,0.7,0.89,0.89);
   cuPerp->SetLogy();
   hstack_uPerp->Draw("HE");
-  hstack_uPerp->SetMinimum(0.3);
+  hstack_uPerp->SetMinimum(0.03);
   hstack_uPerp->SetMaximum(3000.0);
   hstack_uPerp->Draw("E SAME");
   hDatauPerp->SetMarkerStyle(8); // large dot
@@ -384,12 +405,13 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   cnjets->SetLogy();
   hstack_njets->Draw("HE");
   hstack_njets->SetMinimum(0.3);
-  hstack_njets->SetMaximum(4000.0);
+  hstack_njets->SetMaximum(15000.0);
   hstack_njets->Draw("E SAME");
   hDatanjets->SetMarkerStyle(8); // large dot
   hDatanjets->Draw("EX0 SAME"); //X0 doesn't draw x error
   hstack_njets->GetXaxis()->SetTitle("N_{jets}");
   hstack_njets->GetXaxis()->SetTitleSize(0.04);
+  hstack_njets->GetXaxis()->SetRange(1,5);
   hstack_njets->GetYaxis()->SetTitle("events ");
   hstack_njets->GetYaxis()->SetTitleSize(0.04);
   hstack_njets->GetYaxis()->CenterTitle();

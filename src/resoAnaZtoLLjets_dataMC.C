@@ -40,18 +40,20 @@
 
 using namespace std;
 
-void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMCName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100.root", const char* fDataName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100_DATA.root", const char* suffix = "_spring15_50ns_GLTcutZmass80to100_mumu", const Double_t min_zpt_xaxis = 0) {
+void resoAnaZtoLLjets_dataMC(const Double_t min_zpt_xaxis = 0, const Double_t max_zpt_xaxis = 800, const string MC_TexLabel = "#mu#mu MC", const string data_TexLabel = "data", const char* fMCName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100.root", const char* fDataName = "zmumujets_resoResp_spring15_50ns_GLTcutZmass80to100_DATA.root", const char* suffix = "_spring15_50ns_GLTcutZmass80to100_mumu",const Int_t plotsForAdish = 0) {
 
   // const char* fMCName = "zmumujets_resoResp_noSkim_light.root";
   // const char* fDataName = "zeejets_resoResp_noSkim_light.root";
 
   // suffix is a string used to name files without overwriting already existing ones
 
-  string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/resoRespAnalysis/dataMC_comparison/";
-  string plotFileExtension = ".pdf";
+  // following option to have white legends
+  gROOT->SetStyle("Plain");  
+  gStyle->SetFillColor(10);
 
-  string MC_TexLabel = "#mu#mu MC";
-  string data_TexLabel = "data"; 
+  string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/resoRespAnalysis/dataMC_comparison/";
+  if (plotsForAdish) plotDirectoryPath += "plotsForAdish";
+  string plotFileExtension = ".pdf"; 
 
   Int_t default_YaxisRange = 1;
 
@@ -70,10 +72,11 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   TGraphErrors *grMC_resoPar_vs_ZpT = (TGraphErrors*)fMC->Get("gr_resolution_uPar_vs_ZpT");
   TGraphErrors *grMC_resoPerp_vs_ZpT = (TGraphErrors*)fMC->Get("gr_resolution_uPerp_vs_ZpT");
   TGraphErrors *grMC_responseCurve = (TGraphErrors*)fMC->Get("gr_responseCurve");
-  TGraphErrors *grMC_responseCurve_0jets = (TGraphErrors*)fMC->Get("gr_responseCurve_0jets");
+  TGraphErrors *grMC_responseCurve_gausFit = (TGraphErrors*)fMC->Get("gr_responseCurve_gausFit");      // response as <(uPar-ZpT)/ZpT> + 1
+  //TGraphErrors *grMC_responseCurve_0jets = (TGraphErrors*)fMC->Get("gr_responseCurve_0jets");
 
-  if (!grMC_resoPar_vs_nvtx || !grMC_resoPar_vs_nvtx_lowZpT || !grMC_resoPerp_vs_nvtx || !grMC_resoPar_vs_ZpT || !grMC_resoPerp_vs_ZpT || !grMC_responseCurve || grMC_responseCurve_0jets) {
-    cout <<" Error: one ore more objects not read from file" << fMCName << endl;
+  if (!grMC_resoPar_vs_nvtx || !grMC_resoPar_vs_nvtx_lowZpT || !grMC_resoPerp_vs_nvtx || !grMC_resoPar_vs_ZpT || !grMC_resoPerp_vs_ZpT || !grMC_responseCurve || !grMC_responseCurve_gausFit /*|| !grMC_responseCurve_0jets*/) {
+    cout <<" Error: one ore more objects not read from file " << fMCName << endl;
     exit(EXIT_FAILURE);
   }
 
@@ -83,14 +86,16 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   grMC_resoPar_vs_ZpT->SetMarkerColor(kRed);
   grMC_resoPerp_vs_ZpT->SetMarkerColor(kRed);
   grMC_responseCurve->SetMarkerColor(kRed);
-  grMC_responseCurve_0jets->SetMarkerColor(kRed);
+  grMC_responseCurve_gausFit->SetMarkerColor(kRed);
+  //grMC_responseCurve_0jets->SetMarkerColor(kRed);
   grMC_resoPar_vs_nvtx->SetMarkerStyle(21);
   grMC_resoPar_vs_nvtx_lowZpT->SetMarkerStyle(20);
   grMC_resoPerp_vs_nvtx->SetMarkerStyle(21);
   grMC_resoPar_vs_ZpT->SetMarkerStyle(21);
   grMC_resoPerp_vs_ZpT->SetMarkerStyle(21);
   grMC_responseCurve->SetMarkerStyle(21);
-  grMC_responseCurve_0jets->SetMarkerStyle(21);
+  grMC_responseCurve_gausFit->SetMarkerStyle(20);
+  //grMC_responseCurve_0jets->SetMarkerStyle(21);
 
   TFile* fData = TFile::Open(fDataName,"READ");
 
@@ -107,10 +112,11 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   TGraphErrors *grData_resoPar_vs_ZpT = (TGraphErrors*)fData->Get("gr_resolution_uPar_vs_ZpT");
   TGraphErrors *grData_resoPerp_vs_ZpT = (TGraphErrors*)fData->Get("gr_resolution_uPerp_vs_ZpT");
   TGraphErrors *grData_responseCurve = (TGraphErrors*)fData->Get("gr_responseCurve");
-  TGraphErrors *grData_responseCurve_0jets = (TGraphErrors*)fData->Get("gr_responseCurve_0jets");
+  TGraphErrors *grData_responseCurve_gausFit = (TGraphErrors*)fData->Get("gr_responseCurve_gausFit");  // response as <(uPar-ZpT)/ZpT> + 1
+  //TGraphErrors *grData_responseCurve_0jets = (TGraphErrors*)fData->Get("gr_responseCurve_0jets");
 
-  if (!grData_resoPar_vs_nvtx || !grData_resoPar_vs_nvtx_lowZpT || !grData_resoPerp_vs_nvtx || !grData_resoPar_vs_ZpT || !grData_resoPerp_vs_ZpT || !grData_responseCurve || grData_responseCurve_0jets) {
-    cout <<" Error: one ore more objects not read from file" << fDataName << endl;
+  if (!grData_resoPar_vs_nvtx || !grData_resoPar_vs_nvtx_lowZpT || !grData_resoPerp_vs_nvtx || !grData_resoPar_vs_ZpT || !grData_resoPerp_vs_ZpT || !grData_responseCurve || !grData_responseCurve_gausFit /*|| !grData_responseCurve_0jets*/) {
+    cout <<" Error: one ore more objects not read from file " << fDataName << endl;
     exit(EXIT_FAILURE);
   }
 
@@ -120,14 +126,21 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   grData_resoPar_vs_ZpT->SetMarkerColor(kBlue);
   grData_resoPerp_vs_ZpT->SetMarkerColor(kBlue);
   grData_responseCurve->SetMarkerColor(kBlue);
-  grData_responseCurve_0jets->SetMarkerColor(kBlue);
+  grData_responseCurve_gausFit->SetMarkerColor(kBlue);
+  //grData_responseCurve_0jets->SetMarkerColor(kBlue);
   grData_resoPar_vs_nvtx->SetMarkerStyle(22);
   grData_resoPar_vs_nvtx_lowZpT->SetMarkerStyle(23);
   grData_resoPerp_vs_nvtx->SetMarkerStyle(22);
   grData_resoPar_vs_ZpT->SetMarkerStyle(22);
   grData_resoPerp_vs_ZpT->SetMarkerStyle(22);
   grData_responseCurve->SetMarkerStyle(22);
-  grData_responseCurve_0jets->SetMarkerStyle(22);
+  grData_responseCurve_gausFit->SetMarkerStyle(23);
+  //grData_responseCurve_0jets->SetMarkerStyle(22);
+
+  TGraphErrors *grMC_responseCurve_gausFit_clone = (TGraphErrors*)grMC_responseCurve_gausFit->Clone("grMC_responseCurve_gausFit_clone");
+  TGraphErrors *grData_responseCurve_gausFit_clone = (TGraphErrors*)grData_responseCurve_gausFit->Clone("grData_responseCurve_gausFit_clone");
+  grMC_responseCurve_gausFit->SetMarkerColor(kCyan+1);
+  grData_responseCurve_gausFit->SetMarkerColor(kMagenta+1);
 
   TCanvas *c_resoPar_vs_nvtx = new TCanvas("resoPar_vs_nvtx","");
   TLegend *leg_resoPar_vs_nvtx = new TLegend(0.38,0.78,0.49,0.89);
@@ -260,7 +273,7 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
 
   TCanvas *c_responseCurve = new TCanvas("responseCurve","");
   TMultiGraph *mg_responseCurve = new TMultiGraph();
-  TLegend *leg_responseCurve = new TLegend(0.38,0.78,0.49,0.89);
+  TLegend *leg_responseCurve = new TLegend(0.38,0.28,0.49,0.39);
   mg_responseCurve->Add(grMC_responseCurve,"AP");
   mg_responseCurve->Add(grData_responseCurve,"P");
   mg_responseCurve->Draw("A");
@@ -275,6 +288,51 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   leg_responseCurve->SetMargin(0.3); 
   leg_responseCurve->SetBorderSize(0);
   c_responseCurve->SaveAs( (plotDirectoryPath + c_responseCurve->GetName() + suffix + plotFileExtension).c_str());
+
+  TCanvas *c_responseCurve_gausFit = new TCanvas("responseCurve_gausFit","");
+  TMultiGraph *mg_responseCurve_gausFit = new TMultiGraph();
+  TLegend *leg_responseCurve_gausFit = new TLegend(0.38,0.28,0.49,0.39);
+  mg_responseCurve_gausFit->Add(grMC_responseCurve_gausFit_clone,"AP");
+  mg_responseCurve_gausFit->Add(grData_responseCurve_gausFit_clone,"P");
+  mg_responseCurve_gausFit->Draw("A");
+  mg_responseCurve_gausFit->GetXaxis()->SetTitle("ZpT [GeV]");
+  mg_responseCurve_gausFit->GetXaxis()->SetRangeUser(min_zpt_xaxis, max_zpt_xaxis);
+  mg_responseCurve_gausFit->GetYaxis()->SetTitle("< (u_{||}-ZpT)/ZpT > + 1");
+  mg_responseCurve_gausFit->GetYaxis()->SetTitleOffset(1.2);
+  mg_responseCurve_gausFit->GetYaxis()->SetTitleSize(0.04);
+  mg_responseCurve_gausFit->GetYaxis()->SetRangeUser(0.4,1.1);
+  leg_responseCurve_gausFit->AddEntry(grMC_responseCurve_gausFit_clone,MC_TexLabel.c_str(),"lp");
+  leg_responseCurve_gausFit->AddEntry(grData_responseCurve_gausFit_clone,data_TexLabel.c_str(),"lp");
+  leg_responseCurve_gausFit->Draw(); 
+  leg_responseCurve_gausFit->SetMargin(0.3); 
+  leg_responseCurve_gausFit->SetBorderSize(0);
+  c_responseCurve_gausFit->SaveAs( (plotDirectoryPath + c_responseCurve_gausFit->GetName() + suffix + plotFileExtension).c_str());
+
+  TCanvas *c_responseCurve_2Def_Comparison = new TCanvas("responseCurve_2Def_Comparison","");
+  TMultiGraph *mg_responseCurve_2Def_Comparison = new TMultiGraph();
+  TLegend *leg_responseCurve_2Def_Comparison = new TLegend(0.28,0.28,0.60,0.58);
+  mg_responseCurve_2Def_Comparison->Add(grMC_responseCurve,"AP");
+  mg_responseCurve_2Def_Comparison->Add(grData_responseCurve,"P");
+  mg_responseCurve_2Def_Comparison->Add(grMC_responseCurve_gausFit,"AP");
+  mg_responseCurve_2Def_Comparison->Add(grData_responseCurve_gausFit,"P");
+  mg_responseCurve_2Def_Comparison->Draw("A");
+  mg_responseCurve_2Def_Comparison->GetXaxis()->SetTitle("ZpT [GeV]");
+  mg_responseCurve_2Def_Comparison->GetXaxis()->SetRangeUser(min_zpt_xaxis, max_zpt_xaxis);
+  mg_responseCurve_2Def_Comparison->GetYaxis()->SetTitle("response");
+  mg_responseCurve_2Def_Comparison->GetYaxis()->SetTitleOffset(1.2);
+  mg_responseCurve_2Def_Comparison->GetYaxis()->SetTitleSize(0.04);
+  mg_responseCurve_2Def_Comparison->GetYaxis()->SetRangeUser(0.2,1.1);
+  leg_responseCurve_2Def_Comparison->AddEntry((TObject*)0,"<u_{||} / ZpT>","");
+  leg_responseCurve_2Def_Comparison->AddEntry(grMC_responseCurve,MC_TexLabel.c_str(),"lp");
+  leg_responseCurve_2Def_Comparison->AddEntry(grData_responseCurve,data_TexLabel.c_str(),"lp");
+  leg_responseCurve_2Def_Comparison->AddEntry((TObject*)0,"","");
+  leg_responseCurve_2Def_Comparison->AddEntry((TObject*)0,"< (u_{||}-ZpT)/ZpT > + 1","");
+  leg_responseCurve_2Def_Comparison->AddEntry(grMC_responseCurve_gausFit,MC_TexLabel.c_str(),"lp");
+  leg_responseCurve_2Def_Comparison->AddEntry(grData_responseCurve_gausFit,data_TexLabel.c_str(),"lp");
+  leg_responseCurve_2Def_Comparison->Draw(); 
+  leg_responseCurve_2Def_Comparison->SetMargin(0.3); 
+  leg_responseCurve_2Def_Comparison->SetBorderSize(0);
+  c_responseCurve_2Def_Comparison->SaveAs( (plotDirectoryPath + c_responseCurve_2Def_Comparison->GetName() + suffix + plotFileExtension).c_str());
 
   TCanvas *c_responseCurve_largeScale = new TCanvas("responseCurve_largeScale","");
   TMultiGraph *mg_responseCurve_largeScale = new TMultiGraph();
@@ -295,24 +353,44 @@ void resoAnaZtoLLjets_dataMC(const Double_t max_zpt_xaxis = 800, const char* fMC
   leg_responseCurve_largeScale->SetBorderSize(0);
   c_responseCurve_largeScale->SaveAs( (plotDirectoryPath + c_responseCurve_largeScale->GetName() + suffix + plotFileExtension).c_str());
 
-  TCanvas *c_responseCurve_0jets = new TCanvas("responseCurve_0jets","");
-  TMultiGraph *mg_responseCurve_0jets = new TMultiGraph();
-  TLegend *leg_responseCurve_0jets = new TLegend(0.38,0.78,0.49,0.89);
-  mg_responseCurve_0jets->Add(grMC_responseCurve_0jets,"AP");
-  mg_responseCurve_0jets->Add(grData_responseCurve_0jets,"P");
-  mg_responseCurve_0jets->Draw("A");
-  mg_responseCurve_0jets->GetXaxis()->SetTitle("ZpT [GeV]");
-  mg_responseCurve_0jets->GetXaxis()->SetRangeUser(min_zpt_xaxis, max_zpt_xaxis);
-  mg_responseCurve_0jets->GetYaxis()->SetTitle("< u_{||} / ZpT >");
-  mg_responseCurve_0jets->GetYaxis()->SetTitleOffset(1.2);
-  mg_responseCurve_0jets->GetYaxis()->SetTitleSize(0.04);
-  leg_responseCurve_0jets->AddEntry((TObject*)0,"0 jets events","");
-  leg_responseCurve_0jets->AddEntry(grMC_responseCurve_0jets,MC_TexLabel.c_str(),"lp");
-  leg_responseCurve_0jets->AddEntry(grData_responseCurve_0jets,data_TexLabel.c_str(),"lp");
-  leg_responseCurve_0jets->Draw(); 
-  leg_responseCurve_0jets->SetMargin(0.3); 
-  leg_responseCurve_0jets->SetBorderSize(0);
-  c_responseCurve_0jets->SaveAs( (plotDirectoryPath + c_responseCurve_0jets->GetName() + suffix + plotFileExtension).c_str());
+  // TCanvas *c_responseCurve_0jets = new TCanvas("responseCurve_0jets","");
+  // TMultiGraph *mg_responseCurve_0jets = new TMultiGraph();
+  // TLegend *leg_responseCurve_0jets = new TLegend(0.35,0.28,0.49,0.42);
+  // mg_responseCurve_0jets->Add(grMC_responseCurve_0jets,"AP");
+  // mg_responseCurve_0jets->Add(grData_responseCurve_0jets,"P");
+  // mg_responseCurve_0jets->Draw("A");
+  // mg_responseCurve_0jets->GetXaxis()->SetTitle("ZpT [GeV]");
+  // mg_responseCurve_0jets->GetXaxis()->SetRangeUser(min_zpt_xaxis, max_zpt_xaxis);
+  // mg_responseCurve_0jets->GetYaxis()->SetTitle("< u_{||} / ZpT >");
+  // mg_responseCurve_0jets->GetYaxis()->SetTitleOffset(1.2);
+  // mg_responseCurve_0jets->GetYaxis()->SetTitleSize(0.04);
+  // mg_responseCurve_0jets->GetYaxis()->SetRangeUser(0.3,1.1);
+  // leg_responseCurve_0jets->AddEntry((TObject*)0,"0 jets events","");
+  // leg_responseCurve_0jets->AddEntry(grMC_responseCurve_0jets,MC_TexLabel.c_str(),"lp");
+  // leg_responseCurve_0jets->AddEntry(grData_responseCurve_0jets,data_TexLabel.c_str(),"lp");
+  // leg_responseCurve_0jets->Draw(); 
+  // leg_responseCurve_0jets->SetMargin(0.3); 
+  // leg_responseCurve_0jets->SetBorderSize(0);
+  // c_responseCurve_0jets->SaveAs( (plotDirectoryPath + c_responseCurve_0jets->GetName() + suffix + plotFileExtension).c_str());
+
+  TCanvas *c_resoPar_vs_ZpT_Corrected = new TCanvas("resoPar_vs_ZpT_Corrected","");
+  TMultiGraph *mg_resoPar_vs_ZpT_Corrected = new TMultiGraph();
+  TLegend *leg_resoPar_vs_ZpT_Corrected = new TLegend(0.38,0.78,0.49,0.89);
+  mg_resoPar_vs_ZpT_Corrected->Add(grMC_resoPar_vs_ZpT_Corrected,"AP");
+  mg_resoPar_vs_ZpT_Corrected->Add(grData_resoPar_vs_ZpT_Corrected,"P");
+  mg_resoPar_vs_ZpT_Corrected->Draw("A");
+  mg_resoPar_vs_ZpT_Corrected->GetXaxis()->SetTitle("ZpT [GeV]");
+  mg_resoPar_vs_ZpT_Corrected->GetXaxis()->SetRangeUser(min_zpt_xaxis, max_zpt_xaxis);
+  mg_resoPar_vs_ZpT_Corrected->GetYaxis()->SetTitle("#sigma (u_{||}) [GeV]");
+  mg_resoPar_vs_ZpT_Corrected->GetYaxis()->SetTitleOffset(1.2);
+  mg_resoPar_vs_ZpT_Corrected->GetYaxis()->SetTitleSize(0.04);
+  mg_resoPar_vs_ZpT_Corrected->GetYaxis()->SetRangeUser(10.0,40.0);
+  leg_resoPar_vs_ZpT_Corrected->AddEntry(grMC_resoPar_vs_ZpT_Corrected,MC_TexLabel.c_str(),"lp");
+  leg_resoPar_vs_ZpT_Corrected->AddEntry(grData_resoPar_vs_ZpT_Corrected,data_TexLabel.c_str(),"lp");
+  leg_resoPar_vs_ZpT_Corrected->Draw(); 
+  leg_resoPar_vs_ZpT_Corrected->SetMargin(0.3); 
+  leg_resoPar_vs_ZpT_Corrected->SetBorderSize(0);
+  c_resoPar_vs_ZpT_Corrected->SaveAs( (plotDirectoryPath + c_resoPar_vs_ZpT_Corrected->GetName() + suffix + plotFileExtension).c_str());
 
   fMC->Close();
   fData->Close();
