@@ -675,19 +675,19 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    Double_t ZptBinEdgesDATA[] = {1., 10., 20., 40., 60., 80., 100., 120., 140., 170., 200., 250.};
    Int_t nBinsForResponse = 0;   // # of bins for analysis as a function of ZpT
 
-   Int_t nBinsForResponse_0jets = 0;  // for the response curve in events with nJetClean30 = 0
+   //Int_t nBinsForResponse_0jets = 0;  // for the response curve in events with nJetClean30 = 0
 
    if (ISDATA_FLAG) {
 
      ZptBinEdges = ZptBinEdgesDATA;
      nBinsForResponse = sizeof(ZptBinEdgesDATA)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
-     nBinsForResponse_0jets = 6; //use first bins, up to 60 GeV
+     //nBinsForResponse_0jets = 6; //use first bins, up to 60 GeV
 
    } else {
 
      ZptBinEdges = ZptBinEdgesMC;
      nBinsForResponse = sizeof(ZptBinEdgesMC)/sizeof(Double_t) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
-     nBinsForResponse_0jets = 11; //use first bins, up to 60 GeV
+     //nBinsForResponse_0jets = 11; //use first bins, up to 60 GeV
 
    }
 
@@ -697,7 +697,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    TH1D *H_uParMinusZpT_ZpT_ratio[nBinsForResponse]; // here we use <(uPar-ZpT)/ZpT> and will add back 1, so we get the same as above
    TH1D *HZptBinned[nBinsForResponse];
    
-   TH1D *H_uPar_ZpT_ratio_0jets[nBinsForResponse_0jets];  // for the response curve in events with nJetClean30 = 0
+   //TH1D *H_uPar_ZpT_ratio_0jets[nBinsForResponse_0jets];  // for the response curve in events with nJetClean30 = 0
 
    //the following histograms will give the distribution of met|| / wzpt. The mean value will be used to create the response curve, that is (<met|| / wzpt>) vs wzpt
    // for each point, wzpt will be taken as the average wzpt in the range considered
@@ -713,7 +713,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      H_uParMinusZpT_ZpT_ratio[i] = new TH1D(Form("H_uParMinusZpT_ZpT_ratio_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0);
      H_uPerp_VS_ZpT[i] = new TH1D(Form("H_uPerp_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
      H_uParMinusZpT_VS_ZpT[i] = new TH1D(Form("H_uParMinusZpT_VS_ZpT_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",40,-200,200); 
-     if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
+     //if ( i < nBinsForResponse_0jets) H_uPar_ZpT_ratio_0jets[i] = new TH1D(Form("H_uPar_ZpT_ratio_0jets_ZpT%2.0lfTo%2.0lf",ZptBinEdges[i],ZptBinEdges[i+1]),"",350,-7.0,7.0); 
 
    }
 
@@ -1056,7 +1056,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 	   H_uParMinusZpT_ZpT_ratio[respBin]->Fill(uparMinusZrecoPt/ZtoLLRecoPt,newwgt);  //the mean value of this histogram +1 is the response
 	   H_uPerp_VS_ZpT[respBin]->Fill(u_perp,newwgt);
 	   H_uParMinusZpT_VS_ZpT[respBin]->Fill(uparMinusZrecoPt,newwgt);
-	   if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
+	   //if (ZtoLLRecoPt < ZptBinEdges[nBinsForResponse_0jets]) H_uPar_ZpT_ratio_0jets[respBin]->Fill(u_par/ZtoLLRecoPt,newwgt);
 
 	 }
 
@@ -1291,29 +1291,29 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    GresponseCurve_gausFit_bis->SetName("gr_responseCurve_gausFit_bis");
    GresponseCurve_gausFit_bis->Write();
 
-   Double_t response_0jets[nBinsForResponse_0jets];
-   Double_t responseErr_0jets[nBinsForResponse_0jets];
-   Double_t meanZpt_0jets[nBinsForResponse_0jets];
-   Double_t meanZptErr_0jets[nBinsForResponse_0jets];
+   // Double_t response_0jets[nBinsForResponse_0jets];
+   // Double_t responseErr_0jets[nBinsForResponse_0jets];
+   // Double_t meanZpt_0jets[nBinsForResponse_0jets];
+   // Double_t meanZptErr_0jets[nBinsForResponse_0jets];
 
-   for (Int_t i = 0; i < nBinsForResponse_0jets; i++) {
-     meanZpt_0jets[i] = HZptBinned[i]->GetMean();
-     meanZptErr_0jets[i] = HZptBinned[i]->GetMeanError();
-     response_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMean();
-     responseErr_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMeanError();
-     //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
-   }
+   // for (Int_t i = 0; i < nBinsForResponse_0jets; i++) {
+   //   meanZpt_0jets[i] = HZptBinned[i]->GetMean();
+   //   meanZptErr_0jets[i] = HZptBinned[i]->GetMeanError();
+   //   response_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMean();
+   //   responseErr_0jets[i] = H_uPar_ZpT_ratio_0jets[i]->GetMeanError();
+   //   //cout<<i<<" meanZpt = "<<meanZpt[i]<<" +/- "<<meanZptErr[i]<<"    response = "<<response[i]<<" +/- "<<responseErr[i]<<endl;
+   // }
 
-   TGraphErrors *GresponseCurve_0jets = new TGraphErrors(nBinsForResponse_0jets,meanZpt_0jets,response_0jets,meanZptErr_0jets,responseErr_0jets);
-   GresponseCurve_0jets->SetTitle("response curve");
-   GresponseCurve_0jets->Draw("AP");
-   GresponseCurve_0jets->SetMarkerStyle(7);    // 7 is a medium dot
-   GresponseCurve_0jets->GetXaxis()->SetTitle("ZpT [GeV]");
-   GresponseCurve_0jets->GetYaxis()->SetTitle(" < u_{||} / ZpT >");
-   GresponseCurve_0jets->GetYaxis()->SetRangeUser(0.0, 1.1);
-   GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
-   GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
-   GresponseCurve_0jets->Write();
+   // TGraphErrors *GresponseCurve_0jets = new TGraphErrors(nBinsForResponse_0jets,meanZpt_0jets,response_0jets,meanZptErr_0jets,responseErr_0jets);
+   // GresponseCurve_0jets->SetTitle("response curve");
+   // GresponseCurve_0jets->Draw("AP");
+   // GresponseCurve_0jets->SetMarkerStyle(7);    // 7 is a medium dot
+   // GresponseCurve_0jets->GetXaxis()->SetTitle("ZpT [GeV]");
+   // GresponseCurve_0jets->GetYaxis()->SetTitle(" < u_{||} / ZpT >");
+   // GresponseCurve_0jets->GetYaxis()->SetRangeUser(0.0, 1.1);
+   // GresponseCurve_0jets->GetYaxis()->SetTitleOffset(1.4); 
+   // GresponseCurve_0jets->SetName("gr_responseCurve_0jets");
+   // GresponseCurve_0jets->Write();
 
    // correcting resolution of uPar for the response
   
