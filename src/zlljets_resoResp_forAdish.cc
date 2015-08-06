@@ -58,7 +58,7 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
 
   fChain->SetBranchStatus("wgt",1);
   fChain->SetBranchStatus("xsec",1);
-  fChain->SetBranchStatus("wgtsum",1);
+  if (!ISDATA_FLAG) fChain->SetBranchStatus("wgtsum",1);
   fChain->SetBranchStatus("kfact",1);
 
   fChain->SetBranchStatus("nvtx",1);
@@ -380,9 +380,13 @@ void zlljets_resoResp_forAdish::loop(const char* configFileName, const Int_t ISD
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     Double_t purwt = 0.0;
-     if (nvtx <= 49) purwt = HPUrwt->GetBinContent(nvtx);     // purwt is the reweighting for PU
-     if(!ISDATA_FLAG && !unweighted_event_flag) newwgt = LUMI * wgt * xsec * purwt / wgtsum;
+     if(!ISDATA_FLAG && !unweighted_event_flag) {
+
+       Double_t purwt = 0.0;
+       if (nvtx <= 49) purwt = HPUrwt->GetBinContent(nvtx);     // purwt is the reweighting for PU
+       newwgt = LUMI * wgt * xsec * purwt / wgtsum;
+
+     }
 
      metpt = *metpt_ptr;
      metphi = *metphi_ptr;
