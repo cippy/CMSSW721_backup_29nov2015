@@ -470,7 +470,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    mask zlljetsControlSample(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
    if (!ISDATA_FLAG) {
      if (using_zlljets_MCsample_flag) zlljetsControlSample.append(genLepC.get2ToId());
-     else if (using_ztautaujets_MCsample_flag) zlljetsControlSample.append(genTauC.get2ToId());
+     if (using_ztautaujets_MCsample_flag) zlljetsControlSample.append(genTauC.get2ToId());
    }
    zlljetsControlSample.append(HLTlepC.get2ToId());
 
@@ -480,7 +480,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    mask resoAndResponse("selection for resolution and response");
    if (!ISDATA_FLAG) {
      if (using_zlljets_MCsample_flag) resoAndResponse.append(genLepC.get2ToId());
-     else if (using_ztautaujets_MCsample_flag) resoAndResponse.append(genTauC.get2ToId());
+     if (using_ztautaujets_MCsample_flag) resoAndResponse.append(genTauC.get2ToId());
    }
    resoAndResponse.append(HLTlepC.get2ToId());
    resoAndResponse.append(oppChargeLeptonsC.get2ToId());
@@ -550,7 +550,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // tautaubkgInZll.append(maskTightTag);
      // tautaubkgInZll.append(invMassC.get2ToId());
      
-     resoAndResponse.append(maskTightTag);
+     resoAndResponse.append(lep1ptC.get2ToId() + lep2ptC.get2ToId() + lep1etaC.get2ToId() + lep2etaC.get2ToId());
+     resoAndResponse.append(lep1tightIdIso04C.get2ToId() + lep2tightIdIso04C.get2ToId());
      resoAndResponse.append(invMassC.get2ToId());
 
    }
@@ -800,22 +801,23 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        if (using_zlljets_MCsample_flag) {
 
 	 genLepFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, LEP_PDG_ID, 23, firstIndexGen, secondIndexGen, Z_index, GenPart_motherIndex); 
-	 if (!genLepFound_flag) continue;  // if not found gen ee or mumu for MC DYJetsToLL ( l = mu or e) skip the event. This makes things faster
-
-	 eventMask += genLepC.addToMask( genLepFound_flag );
-	 //eventMask += genLepC.addToMask( nLepGood == 2 && LepGood_pdgId[0] == -LepGood_pdgId[1] && fabs(LepGood_pdgId[0]) == 11);
-	 l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
-	 l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
-	 Zgen = l1gen + l2gen;
-	 //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);
-	 //Z_index = GenPart_motherIndex[firstIndexGen];      // not use for now
-	 //ZgenMass = Zgen.Mag();                             // not used for now 
-	 ZtoLLGenPt = Zgen.Pt();                              // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+	 //if (!genLepFound_flag) continue;  // if not found gen ee or mumu for MC DYJetsToLL ( l = mu or e) skip the event. This makes things faster
+	 if (genLepFound_flag) {
+	   eventMask += genLepC.addToMask( genLepFound_flag );
+	   //eventMask += genLepC.addToMask( nLepGood == 2 && LepGood_pdgId[0] == -LepGood_pdgId[1] && fabs(LepGood_pdgId[0]) == 11);
+	   l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
+	   l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
+	   Zgen = l1gen + l2gen;
+	   //could do Z_index = myGetPartIndex(23, nGenPart, GenPart_pdgId);
+	   //Z_index = GenPart_motherIndex[firstIndexGen];      // not use for now
+	   //ZgenMass = Zgen.Mag();                             // not used for now 
+	   ZtoLLGenPt = Zgen.Pt();                              // could do Double_t ZtoLLGenPt = GenPart_pt[Z_index];
+	 }
 
        } else if (using_ztautaujets_MCsample_flag) {
 
 	 genTauFound_flag = myPartGenAlgo(nGenPart, GenPart_pdgId, GenPart_motherId, 15, 23);
-	 if (!genTauFound_flag) continue;  // if not found gen tautau for MC DYJetsToLL ( l = tau) skip the event. This makes things faster
+	 //if (!genTauFound_flag) continue;  // if not found gen tautau for MC DYJetsToLL ( l = tau) skip the event. This makes things faster
 	 eventMask += genTauC.addToMask( genTauFound_flag );
 
        }
@@ -826,7 +828,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // if (!recoLepFound_flag) continue;    // abort it to count events with genLep of a given flavour (if uncommented, I can't count how many genLep I have)
      //firstIndex = 0;
      //secondIndex = 1;
-     if (recoLepFoundFlag) {
+     if (recoLepFound_flag) {
        l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
        l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
        Zreco = l1reco + l2reco;
@@ -860,7 +862,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
        if ( HLT_FLAG ) {
 
-       	 if ( recoLepFound_flag && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) && 
+       	 if ( recoLepFound_flag && (LepGood_tightId[firstIndex] > 0.5) && (LepGood_tightId[secondIndex]  > 0.5) && 
        	      (fabs(LepGood_eta[firstIndex]) < HLT_LEP1ETA) && (fabs(LepGood_eta[secondIndex]) < HLT_LEP2ETA) && 
        	      (LepGood_pt[firstIndex] > HLT_LEP1PT) && (LepGood_pt[secondIndex] > HLT_LEP2PT) ) HLT_passed_flag = 1; 	 
 	 else HLT_passed_flag = 0;  //continue;
@@ -911,7 +913,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
      eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
      eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
-     eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
+     eventMask += tauLooseVetoC.addToMask(nTauClean18V < 0.5);
      eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
      eventMask += metNoLepStartC.addToMask(metNoLepPt > METNOLEP_START);
 
@@ -933,8 +935,8 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        eventMask += lep2ptC.addToMask((LepGood_pt[secondIndex] > LEP2PT) );
        eventMask += lep2etaC.addToMask((fabs(LepGood_eta[secondIndex]) < LEP2ETA) );
        eventMask += invMassC.addToMask((mZ1 > DILEPMASS_LOW) && (mZ1 < DILEPMASS_UP));     
-       eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
-       eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] == 1) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ));
+       eventMask += lep1tightIdIso04C.addToMask((LepGood_tightId[firstIndex] > 0.5 ) && (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) );
+       eventMask += lep2tightIdIso04C.addToMask((LepGood_tightId[secondIndex] > 0.5) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) );
       
      }
 
