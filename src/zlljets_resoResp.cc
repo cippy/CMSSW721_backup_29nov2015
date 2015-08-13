@@ -826,10 +826,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
      // if (!recoLepFound_flag) continue;    // abort it to count events with genLep of a given flavour (if uncommented, I can't count how many genLep I have)
      //firstIndex = 0;
      //secondIndex = 1;
-     l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
-     l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
-     Zreco = l1reco + l2reco;
-     ZtoLLRecoPt = Zreco.Pt();
+     if (recoLepFoundFlag) {
+       l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
+       l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
+       Zreco = l1reco + l2reco;
+       ZtoLLRecoPt = Zreco.Pt();
+     }
 
      if (fabs(LEP_PDG_ID) == 13) { 
 
@@ -874,10 +876,12 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
 
        metNoLepTV.SetMagPhi(met_pt,met_phi);
        // summing just electrons from Z if found
-       ele.SetMagPhi(LepGood_pt[firstIndex],LepGood_phi[firstIndex]);
-       metNoLepTV += ele;
-       ele.SetMagPhi(LepGood_pt[secondIndex],LepGood_phi[secondIndex]);
-       metNoLepTV += ele;
+       if (recoLepFound_flag) {
+	 ele.SetMagPhi(LepGood_pt[firstIndex],LepGood_phi[firstIndex]);
+	 metNoLepTV += ele;
+	 ele.SetMagPhi(LepGood_pt[secondIndex],LepGood_phi[secondIndex]);
+	 metNoLepTV += ele;
+       }
 
        metNoLepPt = metNoLepTV.Mod();
 
