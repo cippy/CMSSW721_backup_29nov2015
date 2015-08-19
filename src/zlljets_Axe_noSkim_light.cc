@@ -127,10 +127,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    Double_t J2PT;
    Double_t J2ETA;
    Double_t J1J2DPHI;
-   Double_t RATIO_BR_ZINV_ZLL;
-   Double_t UNC_RATIO_BR_ZINV_ZLL;
    Int_t LEP_PDG_ID;
-   Int_t NEG_LEP_PDG_ID2;
    Double_t LEP1PT;
    Double_t LEP2PT;
    Double_t LEP1ETA;
@@ -163,7 +160,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      string name;
      string parameterName;
      string parameterType;
-     vector<Double_t> parameterValue;
 
      mySpaces(cout,2);
      cout << "Printing content of " << configFileName << " file" << endl;
@@ -174,8 +170,30 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        if (parameterType == "NUMBER") {
 
 	 inputFile >> parameterName >> value;
-	 parameterValue.push_back(value);
 	 cout << setw(20) << parameterName << setw(7) << value << endl;
+
+	 if (parameterName == "LUMI") LUMI = value;
+	 else if (parameterName == "NJETS") NJETS = value;
+	 else if (parameterName == "J1PT") J1PT = value;
+	 else if (parameterName == "J1ETA") J1ETA = value;
+	 else if (parameterName == "J2PT") J2PT = value;
+	 else if (parameterName == "J2ETA") J2ETA = value;
+	 else if (parameterName == "J1J2DPHI") J1J2DPHI = value;
+	 else if (parameterName == "LEP_PDG_ID") LEP_PDG_ID = value;
+	 else if (parameterName == "LEP1PT") LEP1PT = value;
+	 else if (parameterName == "LEP2PT") LEP2PT = value;
+	 else if (parameterName == "LEP1ETA") LEP1ETA = value;
+	 else if (parameterName == "LEP2ETA") LEP2ETA = value;
+	 else if (parameterName == "DILEPMASS_LOW") DILEPMASS_LOW = value;
+	 else if (parameterName == "DILEPMASS_UP") DILEPMASS_UP = value;
+	 else if (parameterName == "LEP_ISO_04") LEP_ISO_04 = value;
+	 else if (parameterName == "GENLEP1PT") GENLEP1PT = value;
+	 else if (parameterName == "GENLEP2PT") GENLEP2PT = value;
+	 else if (parameterName == "GENLEP1ETA") GENLEP1ETA = value;
+	 else if (parameterName == "GENLEP2ETA") GENLEP2ETA = value;
+	 else if (parameterName == "GEN_ZMASS_LOW") GEN_ZMASS_LOW = value;
+	 else if (parameterName == "GEN_ZMASS_UP") GEN_ZMASS_UP = value;
+	 else if (parameterName == "TAU_VETO_FLAG") TAU_VETO_FLAG = value;
 
        } else if (parameterType == "STRING") {
 	 
@@ -187,42 +205,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
 
      }
      
-     // following variables are initialized with values in the file configFileName
-     LUMI = parameterValue[0];
-     NJETS = (Int_t) parameterValue[1];
-     J1PT = parameterValue[2];
-     J1ETA = parameterValue[3];
-     J2PT = parameterValue[4];
-     J2ETA = parameterValue[5];
-     J1J2DPHI = parameterValue[6];
-     RATIO_BR_ZINV_ZLL = parameterValue[7];
-     UNC_RATIO_BR_ZINV_ZLL = parameterValue[8];
-     LEP_PDG_ID = (Int_t) parameterValue[9];
-     NEG_LEP_PDG_ID2 = (Int_t) parameterValue[10];
-     LEP1PT = parameterValue[11];
-     LEP2PT = parameterValue[12];
-     LEP1ETA = parameterValue[13];
-     LEP2ETA = parameterValue[14];
-     DILEPMASS_LOW = parameterValue[15];
-     DILEPMASS_UP = parameterValue[16];
-     LEP_ISO_04 = parameterValue[17];
-     GENLEP1PT = parameterValue[18];
-     GENLEP2PT = parameterValue[19];
-     GENLEP1ETA = parameterValue[20];
-     GENLEP2ETA = parameterValue[21];
-     GEN_ZMASS_LOW = parameterValue[22];
-     GEN_ZMASS_UP = parameterValue[23];
-     TAU_VETO_FLAG = (Int_t) parameterValue[24];
-     // HLT_FLAG = (Int_t) parameterValue[25];
-     // HLT_LEP1PT = parameterValue[26];
-     // HLT_LEP2PT = parameterValue[27];
-     // HLT_LEP1ETA = parameterValue[28];
-     // HLT_LEP2ETA = parameterValue[29];
-     // NVTXS = parameterValue[30];
-     // FIRST_NVTX = parameterValue[31];
-     // METNOLEP_START = parameterValue[32];
-     mySpaces(cout,2);
-
      inputFile.close();
                                                                                                                          
    } else {
@@ -471,7 +453,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        if ( genLepFound_flag && (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) && ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) && (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) )  acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if (recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] == 1) && (LepGood_relIso04[firstIndex] < LEP_ISO_04)) efficiencySelectionDef = 1;
+       if (recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] >0.5) && (LepGood_relIso04[firstIndex] < LEP_ISO_04)) efficiencySelectionDef = 1;
        else efficiencySelectionDef = 0;
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
@@ -498,7 +480,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        	    (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) ) acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if ( recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] == 1) && (LepGood_tightId[secondIndex] == 1) &&
+       if ( recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] >0.5) && (LepGood_tightId[secondIndex] >0.5) &&
        	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) ) efficiencySelectionDef = 1;
        else efficiencySelectionDef = 0;
 
