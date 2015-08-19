@@ -72,9 +72,9 @@ void znunujetsAna::loop(const char* configFileName)
    // fChain->SetBranchStatus("met_phi",1);
    fChain->SetBranchStatus("metNoMu_pt",1);   // likely this will coincide with the pt of the Z(nunu)
    
-   char ROOT_FNAME[50];
-   char TXT_FNAME[50];
-   char TEX_FNAME[50]; 
+   char ROOT_FNAME[100];
+   char TXT_FNAME[100];
+   char TEX_FNAME[100]; 
    
    Double_t LUMI;
    Int_t NJETS;
@@ -96,7 +96,6 @@ void znunujetsAna::loop(const char* configFileName)
      string name;
      string parameterName;
      string parameterType;
-     vector<Double_t> parameterValue;
 
      mySpaces(cout,2);
      cout << "Printing content of " << configFileName << " file" << endl;
@@ -107,8 +106,18 @@ void znunujetsAna::loop(const char* configFileName)
        if (parameterType == "NUMBER") {
 
 	 inputFile >> parameterName >> value;
-	 parameterValue.push_back(value);
 	 cout << setw(20) << parameterName << setw(7) << value << endl;
+
+	 if (parameterName == "LUMI") LUMI = value;
+	 else if (parameterName == "NJETS") NJETS = value;
+	 else if (parameterName == "J1PT") J1PT = value;
+	 else if (parameterName == "J1ETA") J1ETA = value;
+	 else if (parameterName == "J2PT") J2PT = value;
+	 else if (parameterName == "J2ETA") J2ETA = value;
+	 else if (parameterName == "J1J2DPHI") J1J2DPHI = value;
+	 else if (parameterName == "LEP_PDG_ID") LEP_PDG_ID = value;
+	 else if (parameterName == "TAU_VETO_FLAG") TAU_VETO_FLAG = value;
+	 else if (parameterName == "METNOLEP_START") METNOLEP_START = value;
 
        } else if (parameterType == "STRING") {
 	 
@@ -120,17 +129,6 @@ void znunujetsAna::loop(const char* configFileName)
 
      }
      
-     // following variables are initialized with values in the file configFileName
-     LUMI = parameterValue[0];
-     NJETS = (Int_t) parameterValue[1];
-     J1PT = parameterValue[2];
-     J1ETA = parameterValue[3];
-     J2PT = parameterValue[4];
-     J2ETA = parameterValue[5];
-     J1J2DPHI = parameterValue[6];
-     LEP_PDG_ID = (Int_t) parameterValue[7];
-     TAU_VETO_FLAG = (Int_t) parameterValue[8];
-     METNOLEP_START = parameterValue[9];
      mySpaces(cout,2);
 
      strcpy(ROOT_FNAME,(FILENAME_BASE + ".root").c_str());
