@@ -618,23 +618,41 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample (%s gen if DY MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
    //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    
-   TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
-   TH1D *HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
    TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);   
    TH1D *HnjetsDistribution = new TH1D("HnjetsDistribution","njets using nJetClean30",10,-0.5,9.5);   
    TH1D *Hj1j2dphiDistribution = new TH1D("Hj1j2dphiDistribution","",30,0.0,3.0);
-   TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600);  
-   TH1D *Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
    TH1D *Hjet1etaDistribution = new TH1D("Hjet1etaDistribution","",60,-3.0,3.0);
    TH1D *Hjet2etaDistribution = new TH1D("Hjet2etaDistribution","",60,-3.0,3.0);
-
-   TH1D *HmetNoLepDistribution_NoJetCuts = new TH1D("HmetNoLepDistribution_NoJetCuts","",60,METNOLEP_START,METNOLEP_START+600);
-   TH1D *HzptDistribution_NoJetCuts = new TH1D("HzptDistribution_NoJetCuts","",80,0,400);
+   TH1D *HmetNoLepDistribution;
+   TH1D *HzptDistribution;
+   TH1D *Hjet1ptDistribution;  
+   TH1D *Hjet2ptDistribution;
+   
    TH1D *HinvMass_NoJetCuts = new TH1D("HinvMass_NoJetCuts","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);  
    TH1D *HvtxDistribution_NoJetCuts = new TH1D("HvtxDistribution_NoJetCuts","",40,-0.5,39.5);
    TH1D *HnjetsDistribution_NoJetCuts = new TH1D("HnjetsDistribution_NoJetCuts","njets using nJetClean30",10,-0.5,9.5);
-   TH1D *Hjet1ptDistribution_NoJetCuts = new TH1D("Hjet1ptDistribution_NoJetCuts","",60,J1PT,J1PT+600);
+   TH1D *HmetNoLepDistribution_NoJetCuts;
+   TH1D *HzptDistribution_NoJetCuts;
+   TH1D *Hjet1ptDistribution_NoJetCuts;
+
+   if (using_phys14_sample_flag) {
+     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",(Int_t)(1000.0-METNOLEP_START)/10.0,METNOLEP_START,1000.0);
+     HzptDistribution = new TH1D("HzptDistribution","",200,0.0,1000.0);
+     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",97,30,1000); 
+     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",97,30,1000);
+     HmetNoLepDistribution_NoJetCuts = new TH1D("HmetNoLepDistribution_NoJetCuts","",(Int_t)(1000.0-METNOLEP_START)/10.0,METNOLEP_START,1000.0);
+     HzptDistribution_NoJetCuts = new TH1D("HzptDistribution_NoJetCuts","",200,0.0,1000.0);
+     Hjet1ptDistribution_NoJetCuts = new TH1D("Hjet1ptDistribution_NoJetCuts","",97,30,1000);
+   } else if (using_spring15_sample_flag) {
+     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
+     HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
+     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
+     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
+     HmetNoLepDistribution_NoJetCuts = new TH1D("HmetNoLepDistribution_NoJetCuts","",60,METNOLEP_START,METNOLEP_START+600);
+     HzptDistribution_NoJetCuts = new TH1D("HzptDistribution_NoJetCuts","",80,0,400);
+     Hjet1ptDistribution_NoJetCuts = new TH1D("Hjet1ptDistribution_NoJetCuts","",60,J1PT,J1PT+600);
+   }
 
    TH1D *HZtoLLRecoPt = new TH1D("HZtoLLRecoPt","",101,0.,1010);   // end at 1010 because I will put the overflow in the last bin
    // the previous histogram is differen from HzptDistribution because the binning is different
@@ -703,7 +721,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
    Int_t nBinsForResponse = 0;   // # of bins for analysis as a function of ZpT
    Double_t ZptBinEdges_Spring15[] = {1., 10., 20., 30., 40., 60., 80., 100., 120., 140., 180., 220.}; 
    Double_t ZptBinEdges_Phys14[] = {250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
-   Double_t ZptBinEdges_Phys14_noSkim[] = {10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
+   Double_t ZptBinEdges_Phys14_noSkim[] = {1., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 310., 330., 350., 370., 400., 430., 460., 490., 530., 570, 610., 650., 700., 800.};
    //Int_t nBinsForResponse = sizeof(ZptBinEdges)/sizeof(ZptBinEdges[0]) - 1;  //number of bins is n-1 where n is the number of ZptBinEdges's elements
    //Int_t nBinsForResponse_0jets = 0;  // for the response curve in events with nJetClean30 = 0
 
@@ -995,7 +1013,6 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        
        if (!ISDATA_FLAG && using_zlljets_MCsample_flag) {
 
-	 HZtoLLRecoPt->Fill(ZtoLLRecoPt,newwgt);
 	 HZtoLLGenPt->Fill(ZtoLLGenPt,newwgt);
 	 if (ZtoLLGenPt != 0) {
 
