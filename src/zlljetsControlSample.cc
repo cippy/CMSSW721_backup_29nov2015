@@ -373,9 +373,9 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
      strcpy(TXT_FNAME,(FILENAME_BASE + "_DATA.txt").c_str());
      strcpy(TEX_FNAME,(FILENAME_BASE + "_DATA.tex").c_str());
    } else {
-     strcpy(ROOT_FNAME,(FILENAME_BASE + suffix + ".root").c_str());
-     strcpy(TXT_FNAME,(FILENAME_BASE + suffix + ".txt").c_str());
-     strcpy(TEX_FNAME,(FILENAME_BASE + suffix + ".tex").c_str());
+     strcpy(ROOT_FNAME,(FILENAME_BASE + "_" + suffix + ".root").c_str());
+     strcpy(TXT_FNAME,(FILENAME_BASE + "_" + suffix + ".txt").c_str());
+     strcpy(TEX_FNAME,(FILENAME_BASE + "_" + suffix + ".tex").c_str());
    }
 
    if (fabs(LEP_PDG_ID) == 13) {  // if we have Z -> mumu do stuff...
