@@ -519,12 +519,18 @@ int main(int argc, char* argv[]) {
 
   Double_t lepton_PDGID;
   Int_t isdata_flag;
+  Int_t tau_veto_flag;
   string treePath;
   string friendTreePath;
   string option = "";
 
   Int_t unweighted_event_flag = 0;  // this flag tells the user if the MC uses unit weight (using w = 1 is basically for debugging purposes)
   Int_t adishTree_flag = 0;  // tells user I'm using Adish's tree
+
+  // following are for CS analysis
+  Int_t controlSample_flag = 0;
+  string fileWithSamplesPathForCS = "";
+  string filename_base = "";
 
   if (argc > 2 ) {
 
@@ -552,93 +558,301 @@ int main(int argc, char* argv[]) {
 
   ifstream inputFile(configFileName);
 
-   if (inputFile.is_open()) {
+  if (inputFile.is_open()) {
 
-     Double_t value;
-     string name;
-     string parameterName;
-     string parameterType;
+    Double_t value;
+    string name;
+    string parameterName;
+    string parameterType;
 
-     while (inputFile >> parameterType ) {  // read only first object  here
+    while (inputFile >> parameterType ) {  // read only first object  here
 
-       if (parameterType == "NUMBER") {
+      if (parameterType == "NUMBER") {
 
-	 inputFile >> parameterName >> value;  
+	inputFile >> parameterName >> value;  
 
-	 if (parameterName == "LEP_PDG_ID") {
+	if (parameterName == "LEP_PDG_ID") {
 
-	   lepton_PDGID = (Int_t) value;
-	   std::cout << "lepton_pdgID = " << value <<std::endl;
+	  lepton_PDGID = (Int_t) value;
+	  std::cout << "lepton_pdgID = " << value <<std::endl;
 
-	   if (fabs(lepton_PDGID) == 13) {
-	     std::cout << "Analysis of Z->mumu" << std::endl;
-	   } else if (fabs(lepton_PDGID) == 11) {
-	     std::cout << "Analysis of Z->ee" << std::endl;
-	   } else if (fabs(lepton_PDGID) == 12 || fabs(lepton_PDGID) == 14 || fabs(lepton_PDGID) == 16) {
-	     std::cout << "Analysis of Z->nunu" << std::endl;
-	   }
+	  if (fabs(lepton_PDGID) == 13) {
+	    std::cout << "Analysis of Z->mumu" << std::endl;
+	  } else if (fabs(lepton_PDGID) == 11) {
+	    std::cout << "Analysis of Z->ee" << std::endl;
+	  } else if (fabs(lepton_PDGID) == 12 || fabs(lepton_PDGID) == 14 || fabs(lepton_PDGID) == 16) {
+	    std::cout << "Analysis of Z->nunu" << std::endl;
+	  }
 
-	 } 
+	} 
 
-	 if (parameterName == "ISDATA_FLAG") {
+	if (parameterName == "ISDATA_FLAG") {
 
-	   isdata_flag = (Int_t) value;
+	  isdata_flag = (Int_t) value;
 
-	   if (isdata_flag == 0) std::cout << "Running on MonteCarlo" << std::endl;
-	   else std::cout << "Running on data" << std::endl;
+	  if (isdata_flag == 0) std::cout << "Running on MonteCarlo" << std::endl;
+	  else std::cout << "Running on data" << std::endl;
 
-	 }
+	}
 
-       } else if (parameterType == "STRING") {
+	if (parameterName == "TAU_VETO_FLAG") {
 
-	 inputFile >> parameterName >> name;
+	  tau_veto_flag = (Int_t) value;
 
-	 if (parameterName == "TREE_PATH") {
+	  if (tau_veto_flag == 0) std::cout << "Not applying tau veto" << std::endl;
+	  else std::cout << "Applying tau veto" << std::endl;
 
-	   treePath = name;
-	   std::cout << setw(20) << "tree : " << treePath <<std::endl;
+	}
 
-	 }  
+      } else if (parameterType == "STRING") {
 
-	 if (parameterName == "FRIEND_TREE_PATH") {
+	inputFile >> parameterName >> name;
 
-	   friendTreePath = name;
-	   std::cout << setw(20) << "friend tree : " << friendTreePath <<std::endl;
+	if (parameterName == "TREE_PATH") {
 
-	 }  
+	  treePath = name;
+	  std::cout << setw(20) << "tree : " << treePath <<std::endl;
 
-	 if (parameterName == "OPTION") {
+	}  
 
-	   option = name;
-	   std::cout << setw(20) << "option : " << option <<std::endl;
+	if (parameterName == "FRIEND_TREE_PATH") {
 
-	 }  
+	  friendTreePath = name;
+	  std::cout << setw(20) << "friend tree : " << friendTreePath <<std::endl;
 
-       }
+	}  
 
-     }
+	if (parameterName == "OPTION") {
 
-     inputFile.close();
+	  option = name;
+	  std::cout << setw(20) << "option : " << option <<std::endl;
+  
+
+	} 
+
+	if (parameterName == "FILENAME_BASE") {  // path to file with CS samples and some options
+
+	  filename_base = name;
+	  std::cout << setw(20) << "filename_base: " << filename_base <<std::endl;
+
+	} 
+
+	if (parameterName == "PATH_TO_SAMPLES_4CS") {  // path to file with CS samples and some options
+
+	  controlSample_flag = 1;
+	  fileWithSamplesPathForCS = name;
+	  std::cout << "Performing analysis on control samples." <<std::endl;
+	  std::cout << setw(20) << "file pointing to CS samples: " << fileWithSamplesPathForCS <<std::endl;
+
+	} 
+
+      }
+
+    }
+
+    inputFile.close();
                                                                                                                          
-   } else {
+  } else {
 
-     cout << "Error: could not open file " << configFileName << endl;
-     exit(EXIT_FAILURE);
+    cout << "Error: could not open file " << configFileName << endl;
+    exit(EXIT_FAILURE);
 
-   }
+  }
 
-   //if (!isdata_flag && unweighted_event_flag) std::cout << "Using unweighted events (w = 1) " << std::endl;
-   //std::cout<<"Using Emanuele's trees with no skim"<<std::endl;
-   std::cout<< std::endl;
-   if (adishTree_flag) std::cout<<"Using Adish's trees "<<std::endl;
-   else std::cout<<"Using Emanuele's trees "<<std::endl;
-   std::cout << "Creating chain ..." << std::endl;
-   TChain* chain = new TChain("tree");
-   //chain->Add("/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/tree.root");
-   chain->Add(treePath.c_str());
-   TChain* chFriend = new TChain("mjvars/t");
-   //chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-   if (!adishTree_flag) chain->AddFriend("mjvars/t",friendTreePath.c_str());
+  if (controlSample_flag == 1) {
+
+    // char buffer1[200];
+    // char buffer2[200];
+    // char rootFileToChain[500];
+    // char rootFriendFileToChain[500];
+
+    Double_t value;
+    string name;
+    string parameterName;
+    string parameterType;
+
+    //vector< vector<Double_t> > matrix;
+    vector< Double_t > yieldsRow;
+    vector< Double_t > efficiencyRow;
+    Int_t nSample = 0;
+    std::vector<std::string> sampleName;
+    
+    std::vector<std::string> selectionDefinition;
+    selectionDefinition.push_back("entry point");        // include genLep, HLT, MetNoLep
+    selectionDefinition.push_back("preselection");
+    selectionDefinition.push_back("2lep SF/OS");
+    selectionDefinition.push_back("2lep loose");
+    if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("muons");
+    else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("electrons");
+    selectionDefinition.push_back("tight Tag");
+    selectionDefinition.push_back("mll");
+    selectionDefinition.push_back("jet1pt");
+    selectionDefinition.push_back("jetjetdphi");
+    selectionDefinition.push_back("njets");
+    if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("electron veto");
+    else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("muon veto");
+    selectionDefinition.push_back("photon veto");
+    if (tau_veto_flag) selectionDefinition.push_back("tau veto");
+    selectionDefinition.push_back("lep match");
+
+    ifstream CSinputFile(fileWithSamplesPathForCS.c_str());
+    Int_t fileEndReached_flag = 0;
+
+    if (CSinputFile.is_open()) {
+
+      while (fileEndReached_flag == 0) {
+
+	//============================================/
+  
+	while ( (CSinputFile >> parameterType) && (!(parameterType == "#")) ) {  // read only first object  here: if it is '#' it signal that another part is starting
+
+	  if (parameterType == "#STOP") fileEndReached_flag = 1;   //tells me that the file is ended and I don't need to go on reading it.
+
+	  if (parameterType == "NUMBER") {
+
+	    CSinputFile >> parameterName >> value;  
+
+	    if (parameterName == "ISDATA_FLAG") {
+
+	      isdata_flag = (Int_t) value;
+
+	      if (isdata_flag == 0) std::cout << "Running on MonteCarlo" << std::endl;
+	      else std::cout << "Running on data" << std::endl;
+
+	    }
+
+	  } else if (parameterType == "STRING") {
+
+	    CSinputFile >> parameterName >> name;
+
+	    if (parameterName == "SAMPLE_NAME") {
+
+	      sampleName.push_back(name.c_str());
+	      std::cout << setw(20) << "sample name : " << name <<std::endl;
+
+	    }  
+
+	    if (parameterName == "TREE_PATH") {
+
+	      treePath = name;
+	      std::cout << setw(20) << "tree : " << treePath <<std::endl;
+
+	    }   
+
+	    if (parameterName == "FRIEND_TREE_PATH") {
+
+	      friendTreePath = name;
+	      std::cout << setw(20) << "friend tree : " << friendTreePath <<std::endl;
+
+	    }  
+
+	  }
+
+	}
+
+	if ( !fileEndReached_flag) {
+
+	  std::cout << "Creating chain ..." << std::endl;
+	  TChain* chain = new TChain("tree");
+	  chain->Add(TString(treePath.c_str()));
+
+	  std::cout << "Adding friend to chain ..." << std::endl;
+	  TChain* chFriend = new TChain("mjvars/t");
+	  chain->AddFriend("mjvars/t",TString(friendTreePath.c_str()));
+	
+	  if(!chain) {
+	    std::cout << "Error: chain not created. End of programme" << std::endl;
+	    exit(EXIT_FAILURE);
+	  }
+	  std::cout << "analysing sample n " << (nSample+1) << " : " << sampleName[nSample]  << std::endl; 
+	  std::cout<<chain->GetEntries()<<std::endl;      
+	  //================ Run Analysis
+	  //zmumujetsAna tree( chain );
+	  zlljetsControlSample tree( chain , sampleName[nSample].c_str());
+	  tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
+	  //matrix.push_back(yieldsRow);
+	  //matrix.push_back(efficiencyRow);
+	  nSample++;
+	  delete chain;
+	  delete chFriend;
+
+	}
+
+	//============================================/
+ 
+      }  //end of while(fileEndReanched_flag == 0)
+
+      CSinputFile.close();
+
+    } else {   // end of if (CSinputFile.is_open())
+
+      cout << "Error: could not open file " << fileWithSamplesPathForCS << endl;
+      exit(EXIT_FAILURE);
+
+    }
+
+    if ( yieldsRow.size() != efficiencyRow.size() ) {
+      std::cout << "Warning:  different number of steps for yields and efficiencies." << std::endl; 
+      std::cout << "Will use the bigger one." << std::endl; 
+    }
+
+    Int_t selectionSize = (yieldsRow.size() >= efficiencyRow.size()) ? (yieldsRow.size()/nSample) : (efficiencyRow.size()/nSample);
+
+    FILE* fp;
+    string finalFileName = filename_base;
+    finalFileName += "_yieldsTable.dat";
+    if (unweighted_event_flag) finalFileName += "_weq1";   //means with weights equal to 1 (for debugging purposes)
+
+    if ( (fp=fopen(finalFileName.c_str(),"w")) == NULL) {
+      cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
+    } else {
+      cout<<"creating file '"<<finalFileName<<"' to save table with yields ..."<<endl;
+      fprintf(fp,"#    step         ");
+      for(Int_t i = 0; i < nSample; i++) {
+	fprintf(fp,"%-16s ",sampleName[i].c_str());
+      }
+      fprintf(fp,"\n");
+      for (Int_t i = 0; i < selectionSize; i++) {
+	fprintf(fp,"%-16s",selectionDefinition[i].c_str());
+	for(Int_t j = 0; j < nSample; j++) {
+	  
+	  if (yieldsRow.at( i + j * selectionSize) < 0) {
+
+	    fprintf(fp," // ");
+	    fprintf(fp," // ");
+
+	  } else { 
+
+	    if (yieldsRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf ",yieldsRow.at( i + j * selectionSize));  //	j * selectionSize refers to number for a sample, i refers to the selection step   
+	    else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
+	    fprintf(fp,"%5.1lf%%   ",(100 * efficiencyRow.at( i + j * selectionSize)));
+
+	  }
+	} 
+	fprintf(fp,"\n");
+      }
+      fclose(fp);
+    }
+
+    return 0;
+
+  }  //end of  "if (controlSample_flag == 1)"
+
+
+  //if (!isdata_flag && unweighted_event_flag) std::cout << "Using unweighted events (w = 1) " << std::endl;
+  //std::cout<<"Using Emanuele's trees with no skim"<<std::endl;
+  std::cout<< std::endl;
+  if (adishTree_flag) std::cout<<"Using Adish's trees "<<std::endl;
+  else std::cout<<"Using Emanuele's trees "<<std::endl;
+  std::cout << "Creating chain ..." << std::endl;
+  TChain* chain;
+  if (adishTree_flag) chain = new TChain("tree/tree");
+  else chain = new TChain("tree");
+  //chain->Add("/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/tree.root");
+  chain->Add(treePath.c_str());
+  TChain* chFriend = new TChain("mjvars/t");
+  //chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_noSkim/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
+  if (!adishTree_flag) chain->AddFriend("mjvars/t",friendTreePath.c_str());
 
   if(!chain) {
     std::cout << "Error: chain not created. End of programme" << std::endl;
@@ -653,32 +867,34 @@ int main(int argc, char* argv[]) {
     zlljets_resoResp_forAdish tree( chain );
     tree.loop(configFileName, isdata_flag, unweighted_event_flag);
 
-  }  
-
-  if ( !(std::strcmp("axel",option.c_str()))) {
-
-    zlljets_Axe_noSkim_light tree( chain );
-    tree.loop(configFileName);
-
-  } else if ( !(std::strcmp("rerel",option.c_str()))) {
-
-    zlljets_resoResp tree( chain );
-    tree.loop(configFileName, isdata_flag, unweighted_event_flag);
-
-  } else if (!(std::strcmp("ana",option.c_str())) ) {
-
-    zlljetsAna_new tree( chain );
-    tree.loop(configFileName, isdata_flag);
-
-  } else if (!(std::strcmp("znunuMC",option.c_str())) ) {
-
-    znunujetsAna tree( chain );
-    tree.loop(configFileName);
-
   } else {
 
-    std::cout << "Option '" << option << "' not found. End of programme" << std::endl;
-    return 0;
+    if ( !(std::strcmp("axel",option.c_str()))) {
+
+      zlljets_Axe_noSkim_light tree( chain );
+      tree.loop(configFileName);
+
+    } else if ( !(std::strcmp("rerel",option.c_str()))) {
+
+      zlljets_resoResp tree( chain );
+      tree.loop(configFileName, isdata_flag, unweighted_event_flag);
+
+    } else if (!(std::strcmp("ana",option.c_str())) ) {
+
+      zlljetsAna_new tree( chain );
+      tree.loop(configFileName, isdata_flag);
+
+    } else if (!(std::strcmp("znunuMC",option.c_str())) ) {
+
+      znunujetsAna tree( chain );
+      tree.loop(configFileName);
+
+    } else {
+
+      std::cout << "Option '" << option << "' not found. End of programme" << std::endl;
+      return 0;
+
+    }
 
   }
   
