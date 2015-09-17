@@ -897,7 +897,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    if (!ISDATA_FLAG && using_zlljets_MCsample_flag)  selStep.push_back(zlljetsControlSample.whichStepHas(recoGenLepMatchC.get2ToId()));
    else selStep.push_back(-1);
 
-   for(Int_t i = 0; i < selStep.back(); i++) {
+   for(Int_t i = 0; i < selStep.size(); i++) {
 
      if (selStep[i] < 0) {
        yRow.push_back(-1);
