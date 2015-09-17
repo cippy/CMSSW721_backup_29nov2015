@@ -818,8 +818,9 @@ int main(int argc, char* argv[]) {
 	  
 	  if (yieldsRow.at( i + j * selectionSize) < 0) {
 
-	    fprintf(fp," // ");
-	    fprintf(fp," // ");
+	    string space = "//";
+	    fprintf(fp,"%-7s ",space.c_str());
+	    fprintf(fp,"%-5s   ",space.c_str());
 
 	  } else { 
 
