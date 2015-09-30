@@ -185,7 +185,7 @@ void zlljets_resoResp::loop(const char* configFileName, const Int_t ISDATA_FLAG,
        if (parameterType == "NUMBER") {
 
 	 inputFile >> parameterName >> value;
-	 cout << setw(20) << parameterName << setw(7) << value << endl;
+	 cout << right << setw(20) << parameterName << "  " << left << value << endl;
 
 	 if (parameterName == "LUMI") LUMI = value;
 	 else if (parameterName == "NJETS") NJETS = value;

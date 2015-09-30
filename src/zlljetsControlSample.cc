@@ -179,7 +179,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
        if (parameterType == "NUMBER") {
 
 	 inputFile >> parameterName >> value;
-	 cout << setw(20) << parameterName << setw(7) << value << endl;
+	 cout << right << setw(20) << parameterName << "  " << left << value << endl;
 
 	 if (parameterName == "LUMI") LUMI = value;
 	 else if (parameterName == "NJETS") NJETS = value;
@@ -716,6 +716,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
        eventMask += HLTlepC.addToMask(HLT_passed_flag);     
        eventMask += oppChargeLeptonsC.addToMask( 1);
        eventMask += twoLeptonsC.addToMask(1);
+       //eventMask += twoLepLooseC.addToMask(nLepLoose > 1.5 && nLepLoose < 2.5);
        eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
        eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT)); 
        eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) );

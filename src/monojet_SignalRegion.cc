@@ -160,7 +160,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
        if (parameterType == "NUMBER") {
 
 	 inputFile >> parameterName >> value;
-	 cout << setw(20) << parameterName << setw(7) << value << endl;
+	 cout << right << setw(20) << parameterName << "  " << left << value << endl;
 
 	 if (parameterName == "LUMI") LUMI = value;
 	 else if (parameterName == "NJETS") NJETS = value;
@@ -209,12 +209,12 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    // metCut.push_back(400);
    // metCut.push_back(500);
 
-   selection metNoLepStartC;
+   selection metNoMuC("metNoMuC",Form("metNoMu > %4.0lf",METNOLEP_START),"first cut on met");
    selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
    selection jjdphiC("jjdphiC",Form("jjdphi < %1.1lf",J1J2DPHI),Form("only if njets = %i",NJETS));
    selection njetsC("njets","nJetClean30 <= 2");
-   selection muonLooseVetoC; 
-   selection electronLooseVetoC; 
+   selection muonLooseVetoC("muonLooseVetoC","muonss veto");; 
+   selection electronLooseVetoC("electronLooseVetoC","electrons veto");; 
    selection tauLooseVetoC;
    if (TAU_VETO_FLAG) tauLooseVetoC.set("tauLooseVetoC","tau veto");
    selection gammaLooseVetoC("gammaLooseVetoC","photons veto");
@@ -262,7 +262,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    mask monojet_SignalRegion("monojet signal selection");
 
-   if (METNOLEP_START) monojet_SignalRegion.append(metNoLepStartC.get2ToId());
+   if (METNOLEP_START) monojet_SignalRegion.append(metNoMuC.get2ToId());
    
    monojet_SignalRegion.append(jet1C.get2ToId());
    monojet_SignalRegion.append(jjdphiC.get2ToId());
@@ -370,7 +370,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
      eventMask += electronLooseVetoC.addToMask(nEle10V == 0);
      eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
      eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
-     eventMask += metNoLepStartC.addToMask(metNoMu_pt > METNOLEP_START);
+     eventMask += metNoMuC.addToMask(metNoMu_pt > METNOLEP_START);
 
      // for (Int_t i = 0; i <  metCut.size(); i++) {
      //   eventMask += metNoLepC[i].addToMask(metNoMu_pt > metCut[i]);
