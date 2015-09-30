@@ -529,7 +529,8 @@ int main(int argc, char* argv[]) {
 
   // following are for CS analysis
   Int_t controlSample_flag = 0;
-  string fileWithSamplesPathForCS = "";
+  Int_t signalRegion_flag = 0;
+  string fileWithSamplesPath = "";
   string filename_base = "";
 
   if (argc > 2 ) {
@@ -640,9 +641,18 @@ int main(int argc, char* argv[]) {
 	if (parameterName == "PATH_TO_SAMPLES_4CS") {  // path to file with CS samples and some options
 
 	  controlSample_flag = 1;
-	  fileWithSamplesPathForCS = name;
+	  fileWithSamplesPath= name;
 	  std::cout << "Performing analysis on control samples." <<std::endl;
-	  std::cout << setw(20) << "file pointing to CS samples: " << fileWithSamplesPathForCS <<std::endl;
+	  std::cout << setw(20) << "file pointing to CS samples: " << fileWithSamplesPath<<std::endl;
+
+	} 
+
+	if (parameterName == "PATH_TO_SAMPLES_4SR") {  // path to file with CS samples and some options
+
+	  signalRegion_flag = 1;
+	  fileWithSamplesPath= name;
+	  std::cout << "Performing analysis on signal region." <<std::endl;
+	  std::cout << setw(20) << "file pointing to SR samples: " << fileWithSamplesPath<<std::endl;
 
 	} 
 
@@ -659,7 +669,7 @@ int main(int argc, char* argv[]) {
 
   }
 
-  if (controlSample_flag == 1) {
+  if (controlSample_flag == 1 || signalRegion_flag == 1) {
 
     // char buffer1[200];
     // char buffer2[200];
@@ -678,39 +688,55 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> sampleName;
     
     std::vector<std::string> selectionDefinition;
-    selectionDefinition.push_back("entry point");        // include genLep, HLT, MetNoLep
-    selectionDefinition.push_back("preselection");
-    selectionDefinition.push_back("2lep SF/OS");
-    selectionDefinition.push_back("2lep loose");
-    if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("muons");
-    else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("electrons");
-    selectionDefinition.push_back("tight Tag");
-    selectionDefinition.push_back("mll");
-    selectionDefinition.push_back("jet1pt");
-    selectionDefinition.push_back("jetjetdphi");
-    selectionDefinition.push_back("njets");
-    if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("electron veto");
-    else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("muon veto");
-    selectionDefinition.push_back("photon veto");
-    if (tau_veto_flag) selectionDefinition.push_back("tau veto");
-    selectionDefinition.push_back("lep match");
 
-    ifstream CSinputFile(fileWithSamplesPathForCS.c_str());
+    if (signalRegion_flag == 1) {
+    
+      selectionDefinition.push_back("entry point");  // include MetNoLep
+      selectionDefinition.push_back("jet1pt");
+      selectionDefinition.push_back("jetjetdphi");
+      selectionDefinition.push_back("njets");
+      selectionDefinition.push_back("muon veto");
+      selectionDefinition.push_back("electron veto");
+      if (tau_veto_flag) selectionDefinition.push_back("tau veto");
+      selectionDefinition.push_back("photon veto");
+
+    } else if (controlSample_flag == 1) {
+
+      selectionDefinition.push_back("entry point");        
+      selectionDefinition.push_back("preselection");   // include genLep, HLT, MetNoLep
+      selectionDefinition.push_back("2lep SF/OS");
+      selectionDefinition.push_back("2lep loose");
+      if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("muons");
+      else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("electrons");
+      selectionDefinition.push_back("tight Tag");
+      selectionDefinition.push_back("mll");
+      selectionDefinition.push_back("jet1pt");
+      selectionDefinition.push_back("jetjetdphi");
+      selectionDefinition.push_back("njets");
+      if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("electron veto");
+      else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("muon veto");
+      selectionDefinition.push_back("photon veto");
+      if (tau_veto_flag) selectionDefinition.push_back("tau veto");
+      selectionDefinition.push_back("lep match");
+
+    }
+
+    ifstream sampleFile(fileWithSamplesPath.c_str());
     Int_t fileEndReached_flag = 0;
 
-    if (CSinputFile.is_open()) {
+    if (sampleFile.is_open()) {
 
       while (fileEndReached_flag == 0) {
 
 	//============================================/
   
-	while ( (CSinputFile >> parameterType) && (!(parameterType == "#")) ) {  // read only first object  here: if it is '#' it signal that another part is starting
+	while ( (sampleFile >> parameterType) && (!(parameterType == "#")) ) {  // read only first object  here: if it is '#' it signal that another part is starting
 
 	  if (parameterType == "#STOP") fileEndReached_flag = 1;   //tells me that the file is ended and I don't need to go on reading it.
 
 	  if (parameterType == "NUMBER") {
 
-	    CSinputFile >> parameterName >> value;  
+	    sampleFile >> parameterName >> value;  
 
 	    if (parameterName == "ISDATA_FLAG") {
 
@@ -723,7 +749,7 @@ int main(int argc, char* argv[]) {
 
 	  } else if (parameterType == "STRING") {
 
-	    CSinputFile >> parameterName >> name;
+	    sampleFile >> parameterName >> name;
 
 	    if (parameterName == "SAMPLE_NAME") {
 
@@ -768,10 +794,19 @@ int main(int argc, char* argv[]) {
 	  std::cout<<chain->GetEntries()<<std::endl;      
 	  //================ Run Analysis
 	  //zmumujetsAna tree( chain );
-	  zlljetsControlSample tree( chain , sampleName[nSample].c_str());
-	  tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
-	  //matrix.push_back(yieldsRow);
-	  //matrix.push_back(efficiencyRow);
+ 
+	  if (signalRegion_flag == 1) {
+
+	    monojet_SignalRegion tree( chain , sampleName[nSample].c_str());
+	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
+
+	  } else if (controlSample_flag == 1) {
+
+	    zlljetsControlSample tree( chain , sampleName[nSample].c_str());
+	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
+
+	  }
+
 	  nSample++;
 	  delete chain;
 	  delete chFriend;
@@ -782,11 +817,11 @@ int main(int argc, char* argv[]) {
  
       }  //end of while(fileEndReanched_flag == 0)
 
-      CSinputFile.close();
+      sampleFile.close();
 
-    } else {   // end of if (CSinputFile.is_open())
+    } else {   // end of if (sampleFile.is_open())
 
-      cout << "Error: could not open file " << fileWithSamplesPathForCS << endl;
+      cout << "Error: could not open file " << fileWithSamplesPath<< endl;
       exit(EXIT_FAILURE);
 
     }
@@ -819,8 +854,8 @@ int main(int argc, char* argv[]) {
 	  if (yieldsRow.at( i + j * selectionSize) < 0) {
 
 	    string space = "//";
-	    fprintf(fp,"%-7s ",space.c_str());
-	    fprintf(fp,"%-5s   ",space.c_str());
+	    fprintf(fp,"%7s ",space.c_str());
+	    fprintf(fp,"%5s    ",space.c_str());
 
 	  } else { 
 
@@ -837,7 +872,7 @@ int main(int argc, char* argv[]) {
 
     return 0;
 
-  }  //end of  "if (controlSample_flag == 1)"
+  }  //end of  "if (controlSample_flag == 1 || signalRegion_flag == 1)"
 
 
   //if (!isdata_flag && unweighted_event_flag) std::cout << "Using unweighted events (w = 1) " << std::endl;
