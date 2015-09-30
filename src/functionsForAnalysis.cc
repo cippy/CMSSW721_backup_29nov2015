@@ -700,7 +700,7 @@ Int_t myPartGenAlgo(const Int_t nGenParticles, const Int_t* particleId, const In
   // The algorithm looks for two opposite sign leptons originating from mother in the list of generated particles.
   // The function returns 1 if the search is successful, and 0 otherwise
 
-  // first it looks for first leptons; if it's found, flag gets 1, thus only the else if will be evaluated until the secon is found
+  // first it looks for first leptons; if it's found, flag gets 1, thus only the "else if" will be evaluated until the second is found
 
   Int_t found = 0;  // will become 1 if search is successful, that is to say, two OS particles coming from Z are found
   Int_t flag = 0;   // will become 1 when first tau from Z is found
@@ -820,16 +820,20 @@ Int_t myGetPairIndexInArray(const Int_t id, const Int_t nLep, const Int_t *lep_p
 
   // However, the function returns 1 if particles are found, and 0 otherwise
 
-  Int_t found = 0;
-
   // as a start we assign non valid values to the indices 
   firstIndex = nLep;
   secondIndex = nLep;
+
+  Int_t found = 0;
   Int_t first_pdgId = 0;
   Int_t i = 0;
+  Int_t absId = fabs(id);
+
+  if (nLep < 2) return found;
+
   do {
 
-    if ( fabs(lep_pdgId[i]) == id ) {
+    if ( fabs(lep_pdgId[i]) == absId ) {
       firstIndex = i;
       first_pdgId = lep_pdgId[i];
     }
@@ -933,5 +937,61 @@ void myPrintYieldsMetBinInStream(ostream & myOutStream, const TH1D* histo, const
    }
    myOutStream<<">"<<(Int_t)metBinEdges[nMetBins]<<" ";
    myOutStream<<histo->GetBinContent(nMetBins + 1)<<" "<<histo->GetBinError(nMetBins + 1)<<" "<<sqrt(histo->GetBinContent(nMetBins + 1))<<endl;
+
+}
+
+
+void mySumWeight_filler_spring15_25ns(const std::string suffix,  std::vector<Double_t> & sumWeightVector) {
+
+  // fill vector with sumWeight for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
+  // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+
+  if (suffix.find("DYJetsToLL_M50") != std::string::npos) {
+     sumWeightVector.push_back(2625679.0);
+     sumWeightVector.push_back(955972.0);
+     sumWeightVector.push_back(1048047.0);
+     sumWeightVector.push_back(987977.0);
+   }
+
+   if (suffix.find("ZJetsToNuNu") != std::string::npos) {
+     sumWeightVector.push_back(3937143.0);
+     sumWeightVector.push_back(5032927.0);
+     sumWeightVector.push_back(1014139.0);
+     sumWeightVector.push_back(1015904.0);
+   }
+
+   if (suffix.find("WJetsToLNu") != std::string::npos) {  // binning 100-200-400-600-Inf
+     sumWeightVector.push_back(10142187.0);
+     sumWeightVector.push_back(5231856.0);
+     sumWeightVector.push_back(1901705.0);
+     sumWeightVector.push_back(1033899.0);
+   }
+
+   if (suffix.find("GJets") != std::string::npos) {  //HT200to400 bin missing
+     sumWeightVector.push_back(4875882.0);
+     sumWeightVector.push_back(2419265.0);
+     sumWeightVector.push_back(2544631.0);
+   }
+
+   if (suffix.find("Top") != std::string::npos) { // all samples except TTJets_LO
+     sumWeightVector.push_back(1000000.0);
+     sumWeightVector.push_back(86689822712.6);
+     sumWeightVector.push_back(18928638.0);
+     sumWeightVector.push_back(3318695.54646);
+     sumWeightVector.push_back(1336800136.23);
+     sumWeightVector.push_back(995600.0);
+   }
+
+   if (suffix.find("QCD") != std::string::npos) {  // HT500to1000 bin missing
+     sumWeightVector.push_back(18717349.0);
+     sumWeightVector.push_back(20086103.0);
+     sumWeightVector.push_back(4963895.0);
+   }
+
+   if (suffix.find("Diboson") != std::string::npos) {  // WW, WZ, ZZ
+     sumWeightVector.push_back(1930000.0);
+     sumWeightVector.push_back(991232.0);
+     sumWeightVector.push_back(996168.0);
+   }
 
 }
