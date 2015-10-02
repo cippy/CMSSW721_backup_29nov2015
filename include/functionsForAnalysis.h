@@ -62,4 +62,6 @@ void myPrintYieldsMetBinInStream(ostream &, const TH1D* histo, const Double_t *m
 
 void mySumWeight_filler_spring15_25ns(const std::string,  std::vector<Double_t> &);
 
+void myEventsInSubsamples_filler_spring15_25ns(const std::string,  std::vector<Int_t> &);
+
 #endif
