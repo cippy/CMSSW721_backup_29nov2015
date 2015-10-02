@@ -995,3 +995,60 @@ void mySumWeight_filler_spring15_25ns(const std::string suffix,  std::vector<Dou
    }
 
 }
+ 
+
+void myEventsInSubsamples_filler_spring15_25ns(const std::string suffix,  std::vector<Int_t> & eventsInSubsamples) {
+
+  // fill vector with number of events for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
+  // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+
+  if (suffix.find("DYJetsToLL_M50") != std::string::npos) {
+     eventsInSubsamples.push_back(5534);
+     eventsInSubsamples.push_back(44507);
+     eventsInSubsamples.push_back(98826);
+     eventsInSubsamples.push_back(127087);   
+   }
+
+   if (suffix.find("ZJetsToNuNu") != std::string::npos) {
+     eventsInSubsamples.push_back(24169);
+     eventsInSubsamples.push_back(601862);
+     eventsInSubsamples.push_back(225671);
+     eventsInSubsamples.push_back(296792);    
+   }
+
+   if (suffix.find("WJetsToLNu") != std::string::npos) {  // binning 100-200-400-600-Inf
+     eventsInSubsamples.push_back(28150);
+     eventsInSubsamples.push_back(317221);
+     eventsInSubsamples.push_back(249117);
+     eventsInSubsamples.push_back(189073);   
+   }
+
+   if (suffix.find("GJets") != std::string::npos) {  //HT200to400 bin missing
+     eventsInSubsamples.push_back(46);
+     eventsInSubsamples.push_back(1756);
+     eventsInSubsamples.push_back(7723);
+   }
+
+   if (suffix.find("Top") != std::string::npos) { // all samples except TTJets_LO
+     eventsInSubsamples.push_back(21274);
+     eventsInSubsamples.push_back(948245);
+     eventsInSubsamples.push_back(414595);
+     eventsInSubsamples.push_back(13074);   
+     eventsInSubsamples.push_back(227709);
+     eventsInSubsamples.push_back(21192);
+   }
+
+   if (suffix.find("QCD") != std::string::npos) {  // HT500to1000 bin missing
+     eventsInSubsamples.push_back(45);
+     eventsInSubsamples.push_back(141);
+     eventsInSubsamples.push_back(22397);
+   }
+
+   if (suffix.find("Diboson") != std::string::npos) {  // WW, WZ, ZZ
+     eventsInSubsamples.push_back(36070);
+     eventsInSubsamples.push_back(9497);
+     eventsInSubsamples.push_back(9690);
+   }
+
+}
+
