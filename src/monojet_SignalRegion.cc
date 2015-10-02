@@ -223,8 +223,11 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    Double_t SUMWEIGHTS;   // ==============  To be initialized with proper value to compute event weight in MC ========================
    vector<Double_t> sumWeightVector;
 
+   vector<Int_t> eventsInSubsamples;
+
    mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
-   
+   myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
+
    Double_t nTotalWeightedEvents = 0.0;     
 
    Int_t using_phys14_sample_flag = 0;
@@ -316,7 +319,9 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    // deciding  what is the event weight
    Double_t newwgt;
-   Double_t currentXsec = 0;  // these is used to change the sumWeight: currentXsec holds the xsec of the event (different for each ht bin or subsample in the merged sample)
+   Double_t eventCounter = 0;  // support variable: at the beginning it is set to the number of entries of the first subsample (e.g. HT100to200 or whatever): when the number of 
+                                                 // event analyzed reaches this value, it's increased by the number of entries in the following subsample and so on. Basically, it's needed to keep track of
+                                                 // the specific subsample that is being analyzed (so that the proper value of sumWeight is used)
    Int_t htbin = 0;  // 
 
    if (ISDATA_FLAG || unweighted_event_flag) newwgt = 1.0;
@@ -334,21 +339,30 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
      nb = fChain->GetEntry(jentry);   nbytes += nb;
      // if (Cut(ientry) < 0) continue;   
 
-     if (jentry%500000 == 0) cout << jentry << endl;
-
      UInt_t eventMask = 0; 
 
      if(!ISDATA_FLAG && !unweighted_event_flag) {
 
-       if (jentry == 0) {
-	 currentXsec = xsec;
-	 htbin = 0;
+       // the following if statement is used to set the proper value of sumWeight, which changes depending on the HTbin or on the specific subsample.
+       // at first eventCounter = 0 so when the loop on events begins the condition is fulfilled:
+       // eventCounter is increased by the # of entries in the first subsample, SUMWEIGHTS is set and the htbin index is increased by 1.
+       // the if condition will be fulfilled again when the next subsample starts being analyzed (note that jentry starts from 0, not from 1)
+
+       if (jentry == eventCounter) {
+	 eventCounter += eventsInSubsamples[htbin];
 	 SUMWEIGHTS = sumWeightVector[htbin];
-       }
-       if (currentXsec != xsec) {  // when weight changes, it means we are entering new HT bin ( weights are the same within the same HT bin, and are ordered)
-	 currentXsec = xsec;
 	 htbin++;
-	 SUMWEIGHTS = sumWeightVector[htbin];
+	 cout << endl;
+	 cout << jentry << ":   " ;
+	 cout << "htbin = " << htbin << "  --->  ";   // it will print 1, 2, 3 ... but as an index it would be 0, 1, 2 ...
+	 cout << "sumWeight = " << SUMWEIGHTS << endl;
+	 cout << endl;
+       }
+
+       if (jentry%500000 == 0) {
+	 cout << jentry << ":   " ;
+	 cout << "htbin = " << htbin << "  --->  ";
+	 cout << "sumWeight = " << SUMWEIGHTS << endl;
        }
 
        // sumweights could be defined at the beginning of this programme according to the suffix 
@@ -474,6 +488,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    
    vector<Int_t> selStep;   //array to store index of step to form selection flow (might want to consider two or more steps together and not separated)
 
+   selStep.push_back(monojet_SignalRegion.whichStepHas(metNoMuC.get2ToId()));
    selStep.push_back(monojet_SignalRegion.whichStepHas(jet1C.get2ToId()));
    selStep.push_back(monojet_SignalRegion.whichStepHas(jjdphiC.get2ToId()));
    selStep.push_back(monojet_SignalRegion.whichStepHas(njetsC.get2ToId()));
