@@ -320,6 +320,8 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    Int_t Z_index = 0; 
 
    Double_t SUMWEIGHTS;
+   vector<Double_t> sumWeightVector;  // used for spring15_25ns
+   vector<Int_t> eventsInSubsamples;
 
    Double_t nTotalWeightedEvents = 0.0;     
    //Double_t nEventsAfterMatchRecoGen = 0.0;
@@ -355,6 +357,14 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    if (FILENAME_BASE.find("spring15") != std::string::npos) {
      using_spring15_sample_flag = 1;    
      cout << "Using spring15 samples" << endl;
+   }
+
+   Int_t using_spring15_25ns_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15_25ns") != std::string::npos) {
+     using_spring15_25ns_sample_flag = 1;    
+     cout << "Using spring15_25ns samples" << endl;
+     mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
+     myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
    }
 
    if ( !ISDATA_FLAG && unweighted_event_flag) cout << "Warning: no weight applied to events (w = 1)" << endl;  // if MC with unit weight, make user know
@@ -539,17 +549,17 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    TH1D *Hjet1ptDistribution;  
    TH1D *Hjet2ptDistribution;
 
-   if (using_phys14_sample_flag) {
+   //if (using_phys14_sample_flag) {
      HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",(Int_t)(1000.0-METNOLEP_START)/10.0,METNOLEP_START,1000.0);
      HzptDistribution = new TH1D("HzptDistribution","",200,0.0,1000.0);
      Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",97,30,1000); 
      Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",97,30,1000);
-   } else if (using_spring15_sample_flag) {
-     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
-     HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
-     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
-     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
-   }
+     //} else if (using_spring15_sample_flag) {
+     // HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
+   //   HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
+   //   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
+   //   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
+   // }
 
    //TH1D *HinvMass[nMetBins];
    TH1D *HzlljetsInvMassMetBinGenLep[nMetBins];
@@ -569,6 +579,11 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    // deciding  what is the event weight
    Double_t newwgt;
+
+   Int_t eventCounter = 0;  // support variable: at the beginning it is set to the number of entries of the first subsample (e.g. HT100to200 or whatever): when the number of 
+                                                 // event analyzed reaches this value, it's increased by the number of entries in the following subsample and so on. Basically, it's needed to keep track of
+                                                 // the specific subsample that is being analyzed (so that the proper value of sumWeight is used)
+   Int_t htbin = 0;  // 
 
    if (ISDATA_FLAG || unweighted_event_flag) newwgt = 1.0;
 
@@ -591,8 +606,23 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
      if(!ISDATA_FLAG && !unweighted_event_flag) {
 
-       // sumweights could be defined at the beginning of this programme according to the suffix 
-       if (using_spring15_sample_flag) newwgt = 1000 * LUMI * vtxW  * xsec * genWeight / SUMWEIGHTS;    // 1000 is because LUMI is in fb^-1 and xsec is in pb
+       if (using_spring15_25ns_sample_flag) {
+
+	 if (jentry == eventCounter) {
+	   eventCounter += eventsInSubsamples[htbin];
+	   SUMWEIGHTS = sumWeightVector[htbin];
+	   htbin++;
+	   cout << endl;
+	   cout << "entry = " << jentry << ":   " ;
+	   cout << "htbin = " << htbin << "  --->  ";   // it will print 1, 2, 3 ... but as an index it would be 0, 1, 2 ...
+	   cout << "sumWeight = " << SUMWEIGHTS << endl;
+	   cout << endl;
+	 }
+
+	 newwgt = 1000 * LUMI * xsec * genWeight / SUMWEIGHTS; 
+
+       } else if (using_spring15_sample_flag && using_spring15_25ns_sample_flag == 0) newwgt = 1000 * LUMI * vtxW  * xsec * genWeight / SUMWEIGHTS;    
+       // 1000 is because LUMI is in fb^-1 and xsec is in pb
        // old wrong one:     newwgt = LUMI * vtxW * weight * LHEorigWeight; 
        else if (using_phys14_sample_flag) newwgt = LUMI * weight;   // for older trees (backward compatibility)
        else newwgt = LUMI * weight;   // for older trees (backward compatibility)
