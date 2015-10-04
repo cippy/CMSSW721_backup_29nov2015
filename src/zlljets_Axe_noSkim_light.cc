@@ -83,7 +83,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    fChain->SetBranchStatus("LepGood_pt",1);
    fChain->SetBranchStatus("LepGood_eta",1);
    fChain->SetBranchStatus("LepGood_phi",1);   
-   //fChain->SetBranchStatus("LepGood_mass",1);
+   fChain->SetBranchStatus("LepGood_mass",1);
    //fChain->SetBranchStatus("LepGood_charge",1);
    fChain->SetBranchStatus("LepGood_tightId",1);
    fChain->SetBranchStatus("LepGood_relIso04",1);
@@ -99,7 +99,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    fChain->SetBranchStatus("GenPart_motherId",1);
    fChain->SetBranchStatus("GenPart_pt",1);
    fChain->SetBranchStatus("GenPart_eta",1);
-   //fChain->SetBranchStatus("GenPart_phi",1);
+   fChain->SetBranchStatus("GenPart_phi",1);
    fChain->SetBranchStatus("GenPart_mass",1);
    fChain->SetBranchStatus("GenPart_motherIndex",1);
 
@@ -112,6 +112,10 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    // fChain->SetBranchStatus("metNoMu_phi",1);
 
    //fChain->SetBranchStatus("nVert",1);  // number of good vertices
+
+   // the following two branches are used for spring15_25ns samples
+   fChain->SetBranchStatus("genWeight",1);
+   fChain->SetBranchStatus("xsec",1);
 
    char ROOT_FNAME[100];
    char TXT_FNAME[100];
@@ -271,6 +275,15 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
    Float_t nLepLoose = 0.0;               // this variable and the following should be an integer, but in Emanuele's trees they are float, so I keep them as such
    Float_t nLep10V = 0.0;
    Double_t metNoLepPt = 0.0;        // this variable will be assigned with *ptr_metNoLepPt, where the pointer will point to the branch metNoMu_pt for mu, and with a hand-defined variable for e
+
+   // following vector are needed to compute reco-gen matching to be included in the efficiency computation. 
+   //I must add it if I want to use this result to estimate Nzvv/Nzll as Ratio_BR/Axe, because it is included in Nzmm 
+   Int_t efficiencyWithRecogenMatch_flag = 1;  // if it is 1, recoGen Match efficiency will be included in the efficiency definition
+   Int_t recogenMatch_isPassed = 0;   // if efficiencyWithRecogenMatch_flag = 1, recogenMatch_isPassed will be set to to 0 or 1 and used to asses in the efficiency selection is passed
+
+   TLorentzVector l1gen, l2gen;     // gen level  l1,l2  (Z->(l1 l2)
+   TLorentzVector l1reco, l2reco;  // reco level
+
    Double_t ZgenMass = 0.0;
    Double_t currentWeight = -1.0;
    Int_t htbin = -1;
@@ -344,7 +357,7 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      lep_acc_eff[i]->append(genLepC.get2ToId());       // to select only Z->ee or Z->mumu 
      lep_acc_eff[i]->append(maskMonoJetSelection);
      lep_acc_eff[i]->append(acceptanceC.get2ToId());
-     lep_acc_eff[i]->append(efficiencyC.get2ToId());
+     lep_acc_eff[i]->append(efficiencyC.get2ToId());     // I can choose whether it includes the reco-gen matching efficiency
    }
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
@@ -355,6 +368,20 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      exit(EXIT_FAILURE);
    }
 
+   // the following are needed only for spring15_25ns
+   Double_t SUMWEIGHTS;   // ==============  To be initialized with proper value to compute event weight in MC ========================
+   vector<Double_t> sumWeightVector;
+   vector<Int_t> eventsInSubsamples;
+   Int_t eventCounter = 0;
+
+   Int_t using_spring15_25ns_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15_25ns") != std::string::npos) {
+     using_spring15_25ns_sample_flag = 1;    
+     string suffix = "DYJetsToLL";
+     cout << "Using spring15_25ns samples" << endl;
+     mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
+     myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
+   }
 
    // the following two variables coincide if no HLT is applied
    Double_t nTotalWeightedEvents = 0.0;       // total events (including weights) considering HLT (i.e. # of events passing HLT selection, if any)
@@ -419,15 +446,36 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      if ((jentry % 500000) == 0) cout << jentry << endl;
 
      UInt_t eventMask = 0; 
-     Double_t newwgt = weight * LUMI;
+     Double_t newwgt;
 
-     if (jentry == 0) {
-       currentWeight = weight;
-       htbin = 0;
-     }
-     if (currentWeight != weight) {  // when weight changes, it means we are entering new HT bin ( weights are the same within the same HT bin, and are ordered)
-       currentWeight = weight;
-       htbin++;
+     if (using_spring15_25ns_sample_flag) {
+
+	 if (jentry == eventCounter) {
+	   eventCounter += eventsInSubsamples[htbin+1];  //note that htbin starts from -1 so that, when I do "htbin++" for the first time, it is 0
+	   SUMWEIGHTS = sumWeightVector[htbin+1];
+	   htbin++;  // here I use it to access histogram with given HT bin
+	   cout << endl;
+	   cout << "entry = " << jentry << ":   " ;
+	   cout << "htbin = " << htbin+1 << "  --->  ";   // it will print 1, 2, 3 ... but as an index it would be 0, 1, 2 ...
+	   cout << "sumWeight = " << SUMWEIGHTS << endl;
+	   cout << endl;	   
+	 }
+
+	 newwgt = 1000 * LUMI * xsec * genWeight / SUMWEIGHTS; 
+
+     } else {  // this part was the old part of the programme, before introduction of spring15 samples
+
+       newwgt = weight * LUMI;
+
+       if (jentry == 0) {
+	 currentWeight = weight;
+	 htbin = 0;
+       }
+       if (currentWeight != weight) {  // when weight changes, it means we are entering new HT bin ( weights are the same within the same HT bin, and are ordered)
+	 currentWeight = weight;
+	 htbin++;
+       }
+
      }
 
      nTotalWeightedEvents += newwgt;  // counting events with weights
@@ -446,6 +494,42 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      
      recoLepFound_flag = myGetPairIndexInArray(LEP_PDG_ID, nLepGood, LepGood_pdgId, firstIndex, secondIndex);       
 
+     //=============================================
+
+     //enter this part if 2 OS/SF leptons were found among gen and reco particles. Now checking compatibilities between pairs
+     // e.g. l1gen = e+, l2gen = e- ; l1reco = e+, l2reco = e- (but the charge order might not coincide)
+     // now we require a DeltaR cut between them to assess that lreco comes from lgen
+     // since 2 OS/SF were found to get inside here, if !(l1gen->l1reco && l2gen->l2reco) then for sure l1gen->l2reco && l2gen->l1reco
+       
+     if (genLepFound_flag == 1 && recoLepFound_flag == 1 && efficiencyWithRecogenMatch_flag == 1) {       
+
+       l1gen.SetPtEtaPhiM(GenPart_pt[firstIndexGen],GenPart_eta[firstIndexGen],GenPart_phi[firstIndexGen],GenPart_mass[firstIndexGen]);
+       l2gen.SetPtEtaPhiM(GenPart_pt[secondIndexGen],GenPart_eta[secondIndexGen],GenPart_phi[secondIndexGen],GenPart_mass[secondIndexGen]);
+       l1reco.SetPtEtaPhiM(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex],LepGood_mass[firstIndex]);
+       l2reco.SetPtEtaPhiM(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex],LepGood_mass[secondIndex]);
+
+       Double_t DeltaR_lreco_lgen_pair1 = 0.0;
+       Double_t DeltaR_lreco_lgen_pair2 = 0.0;
+       
+       if(LepGood_pdgId[firstIndex] == GenPart_pdgId[firstIndexGen] && LepGood_pdgId[secondIndex] == GenPart_pdgId[secondIndexGen]) {
+	 
+	 DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l1gen);
+	 DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l2gen);
+
+       } else {
+	 
+	 DeltaR_lreco_lgen_pair1 = l1reco.DeltaR(l2gen);
+	 DeltaR_lreco_lgen_pair2 = l2reco.DeltaR(l1gen);
+	 
+       }
+       
+       if (DeltaR_lreco_lgen_pair1 < 0.1 && DeltaR_lreco_lgen_pair2 < 0.1) recogenMatch_isPassed = 1;
+       else recogenMatch_isPassed = 0;
+
+     }
+
+     //=============================================
+
      if (fabs(LEP_PDG_ID) == 13) { 
 
        metNoLepPt = *ptr_metNoLepPt;        // casting might not be necessary: promoting float to double should be ok
@@ -453,8 +537,13 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        if ( genLepFound_flag && (GenPart_pt[firstIndexGen] > GENLEP1PT) && (GenPart_pt[secondIndexGen] > GENLEP2PT) && ( fabs(GenPart_eta[firstIndexGen]) < GENLEP1ETA) && ( fabs(GenPart_eta[secondIndexGen]) < GENLEP2ETA) && (ZgenMass > GEN_ZMASS_LOW) && (ZgenMass < GEN_ZMASS_UP) )  acceptanceSelectionDef = 1;
        else acceptanceSelectionDef = 0;
 
-       if (recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] >0.5) && (LepGood_relIso04[firstIndex] < LEP_ISO_04)) efficiencySelectionDef = 1;
-       else efficiencySelectionDef = 0;
+       if (recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] >0.5) && (LepGood_relIso04[firstIndex] < LEP_ISO_04)) {
+
+	 if (efficiencyWithRecogenMatch_flag == 1) {
+	   efficiencySelectionDef = ( (recogenMatch_isPassed == 1) ? 1 : 0);
+	 } else efficiencySelectionDef = 1;
+
+       } else efficiencySelectionDef = 0;
 
      } else if (fabs(LEP_PDG_ID) == 11) { 
 
@@ -481,8 +570,13 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
        else acceptanceSelectionDef = 0;
 
        if ( recoLepFound_flag && (nLepLoose == 2) && (LepGood_tightId[firstIndex] >0.5) && (LepGood_tightId[secondIndex] >0.5) &&
-       	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) ) efficiencySelectionDef = 1;
-       else efficiencySelectionDef = 0;
+       	    (LepGood_relIso04[firstIndex] < LEP_ISO_04 ) && (LepGood_relIso04[secondIndex] < LEP_ISO_04 ) ) {
+
+	 if (efficiencyWithRecogenMatch_flag == 1) {
+	   efficiencySelectionDef = ( (recogenMatch_isPassed == 1) ? 1 : 0);
+	 } else efficiencySelectionDef = 1;
+
+       } else efficiencySelectionDef = 0;
 
      }
 
@@ -561,9 +655,6 @@ void zlljets_Axe_noSkim_light::loop(const char* configFileName)
      }                      // end of    if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) 
        
    }                        // end of loop on entries
-
-   
-   
  
    cout<<"creating file '"<<TXT_FNAME<<"' ..."<<endl;
    ofstream myfile(TXT_FNAME,ios::out);
