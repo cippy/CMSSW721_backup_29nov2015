@@ -46,7 +46,7 @@ void zvvMonojetBkg(const Int_t spring15_25ns_flag = 1){
 
   TH1::SetDefaultSumw2();            //all the following histograms will automatically call TH1::Sumw2() 
 
-  string plotDirectoryPath = "./";  
+  string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/znunuEstimateSRoverCR/";  
   string suffix = "_mumu";
   string plotFileExtension = ".pdf";
 
