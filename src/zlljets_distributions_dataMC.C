@@ -44,6 +44,9 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
 
   // in this macro lepFlavour = 0 means muons, while 1 means electrons
 
+  gROOT->SetStyle("Plain");  // to have white legend (on my pc it's already white, but in tier2 it appears grey)
+  gStyle->SetFillColor(10);
+
   string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/distributions/dataMC_comparison/";
   string plotFileExtension = ".pdf";
 
@@ -254,7 +257,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   //hstack_invMass->SetMinimum(0.3);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_invMass->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -318,7 +321,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   hstack_uParMinusZpt->SetMaximum(3000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_uParMinusZpt->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -381,7 +384,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   hstack_uPerp->SetMaximum(3000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_uPerp->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -441,7 +444,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   hstack_nVertices->Draw("HIST");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_nVertices->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -505,7 +508,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   // hstack_jet1Pt->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet1Pt->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -570,7 +573,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   //if (MCuncBand_flag) hstack_zPtSpectrum->Draw("E SAME");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_zPtSpectrum->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -636,7 +639,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   hstack_metNoLep->SetMaximum(4000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_metNoLep->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -698,7 +701,7 @@ void zlljets_distributions_dataMC(const char* suffix = "_GLTcutZmass80to100_mumu
   hstack_njets->SetMaximum(15000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_njets->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -746,6 +749,9 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
 
   // in this macro lepFlavour = 0 means muons, while 1 means electrons
   // if XaxisMaxPt = -1 (default), use default value, otherwise use the value chosen by user (to be used when the default range is very different from that of the data
+
+  gROOT->SetStyle("Plain");  // to have white legend (on my pc it's already white, but in tier2 it appears grey)
+  gStyle->SetFillColor(10);
 
   string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/distributions/dataMC_comparison/";
   string plotFileExtension = ".pdf";
@@ -985,7 +991,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   //hstack_invMass->SetMinimum(0.3);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_invMass->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1050,7 +1056,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   hstack_metNoLep->SetMaximum(1000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_metNoLep->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1116,7 +1122,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   // hstack_jet1Pt->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet1Pt->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1184,7 +1190,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   // hstack_jet2Pt->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet2Pt->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1252,7 +1258,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   // hstack_jet1eta->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet1eta->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1318,7 +1324,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   // hstack_jet2eta->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet2eta->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1384,7 +1390,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   // hstack_j1j2dphi->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_j1j2dphi->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1447,7 +1453,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   hstack_nVertices->Draw("HIST");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_nVertices->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1512,7 +1518,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   //if (MCuncBand_flag) hstack_zPtSpectrum->Draw("E SAME");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_zPtSpectrum->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1580,7 +1586,7 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
   hstack_njets->SetMaximum(5000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_njets->GetStack()->Last())->DrawCopy("E2 SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     //stackCopy->Draw("E2 SAME");
   }
@@ -1626,6 +1632,9 @@ void zlljets_distributions_dataMC_monojetSelection(const char* suffix = "_MonoJe
 
 
 void zlljets_distributions_dataMC_new(const char* suffix = "_GLTcutZmass80to100_mumu") {
+
+  gROOT->SetStyle("Plain");  // to have white legend (on my pc it's already white, but in tier2 it appears grey)
+  gStyle->SetFillColor(10);
 
   string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/distributions/dataMC_comparison/";
   string plotFileExtension = ".pdf";
@@ -2008,7 +2017,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   //hstack_invMass->SetMinimum(0.3);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_invMass->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2071,7 +2080,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   hstack_uParMinusZpt->SetMaximum(3000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_uParMinusZpt->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2133,7 +2142,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   hstack_uPerp->SetMaximum(3000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_uPerp->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2192,7 +2201,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   hstack_nVertices->Draw("HIST");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_nVertices->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2255,7 +2264,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   // hstack_jet1Pt->SetMinimum(5000.0);
  if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_jet1Pt->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2319,7 +2328,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   //if (MCuncBand_flag) hstack_zPtSpectrum->Draw("E SAME");
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_zPtSpectrum->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2384,7 +2393,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   hstack_metNoLep->SetMaximum(4000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_metNoLep->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
@@ -2445,7 +2454,7 @@ void zlljets_distributions_onlyMC(const char* suffix = "_GLTcutZmass80to100_only
   hstack_njets->SetMaximum(15000.0);
   if (MCuncBand_flag) {
     TH1D* stackCopy = (TH1D*)(((TH1D*)hstack_njets->GetStack()->Last())->DrawCopy("SAME"));
-    stackCopy->SetFillColor(kGray+2);
+    stackCopy->SetFillColor(kGray+3);
     stackCopy->SetFillStyle(3017);
     stackCopy->Draw("E2 SAME");
   }
