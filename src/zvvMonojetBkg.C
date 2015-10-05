@@ -46,7 +46,10 @@ void zvvMonojetBkg(const Int_t spring15_25ns_flag = 1){
 
   TH1::SetDefaultSumw2();            //all the following histograms will automatically call TH1::Sumw2() 
 
-  string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/znunuEstimateSRoverCR/";  
+  gROOT->SetStyle("Plain");  // to have white legend (on my pc it's already white, but in tier2 it appears grey)
+  gStyle->SetFillColor(10);
+
+  string plotDirectoryPath = "/cmshome/ciprianim/CMSSW721/pdfsFromAnalysis/plots/ZtoLLSamples/znunuEstimate/SRoverCR/";  
   string suffix = "_mumu";
   string plotFileExtension = ".pdf";
 
@@ -61,7 +64,7 @@ void zvvMonojetBkg(const Int_t spring15_25ns_flag = 1){
   //ZmumuMC
   string f2name = "zmumujets_CS_spring15_25ns_DYJetsToLL.root";
   TH1D *h2 = NULL;
-  string h2name = "HzlljetsYieldsMetBin";
+  string h2name = "HYieldsMetBin";
 
   //Axe mumu
   string f3name;
@@ -134,15 +137,16 @@ void zvvMonojetBkg(const Int_t spring15_25ns_flag = 1){
   TH1D* hratio = (TH1D*) hzvvMC->Clone("hratio");
   hratio->Divide(hzmumuMC);
 
-  TH1D* hBRratioOverAxe = (TH1D*) hAxeMC->Clone("hBRratioOverAxe");
+  TH1D* hBRratio = (TH1D*) hAxeMC->Clone("hBRratio");  // I clone this to get the same binning
+  
+  for (Int_t i = 1; i <= hBRratio->GetNbinsX(); i++) {  // now I fill it with BR(Z->vv)/BR(Z->ll)
 
-  for (Int_t i = 1; i <= hBRratioOverAxe->GetNbinsX(); i++) {
-
-    hBRratioOverAxe->SetBinContent(i, Rbr);
-    hBRratioOverAxe->SetBinError(i, RbrError);
+    hBRratio->SetBinContent(i, Rbr);
+    hBRratio->SetBinError(i, RbrError);
 
   }
 
+  TH1D* hBRratioOverAxe = (TH1D*) hBRratio->Clone("hBRratioOverAxe");
   hBRratioOverAxe->Divide(hAxeMC);
 
   // now here we go with the canvas
@@ -199,9 +203,74 @@ void zvvMonojetBkg(const Int_t spring15_25ns_flag = 1){
   ratioplot->GetYaxis()->CenterTitle();
   ratioplot->GetYaxis()->SetRangeUser(0.5,1.5);
   ratioplot->GetYaxis()->SetNdivisions(011);
-  ratioplot->DrawCopy("HE");
+  ratioplot->DrawCopy("HE");       // use DrawCopy so that I can delete ratioplot pointer and use it again in the next canvas
   ratioplot->SetMarkerStyle(8);  //medium dot
   c->SaveAs( (plotDirectoryPath + c->GetName() + suffix + plotFileExtension).c_str() );
+  delete ratioplot;
+
+
+  TH1D *ZvvEstimatedFromZll = (TH1D*) hzmumuMC->Clone("ZvvEstimatedFromZll");
+  ZvvEstimatedFromZll->Multiply(hBRratioOverAxe);
+
+  TH1D *hzvvNormalized = NULL;
+  TH1D *hzllNormalized = NULL;
+
+  TPad *subpad2_1 = NULL;  // will use it to access specific subpad in canvas
+  TPad *subpad2_2 = NULL; 
+  TCanvas *c2 = new TCanvas("metShape_zvvANDzll","met shape",700,700);
+
+  TLegend *leg2 = new TLegend(0.6,0.7,0.89,0.89);
+  
+  subpad2_1 = new TPad("pad_1","",0.0,0.28,1.0,1.0);
+  subpad2_1->SetLogy();
+  //subpad2_1->SetBottomMargin(0);
+  subpad2_2 = new TPad("pad_2","",0.0,0.0,1.0,0.32);
+  subpad2_2->SetGridy();
+  //subpad2_2->SetTopMargin(0);
+  subpad2_2->SetBottomMargin(0.3);
+  subpad2_1->Draw();
+  subpad2_2->Draw();
+
+  subpad2_1->cd();
+  hzvvNormalized = (TH1D*) hzvvMC->DrawNormalized("HIST E");
+  hzvvNormalized->SetLineColor(kBlue);
+  hzvvNormalized->SetTitle("");
+  hzvvNormalized->SetStats(0);  // no statistics box
+  hzllNormalized = (TH1D*) ZvvEstimatedFromZll->DrawNormalized("HE SAME"); 
+  hzllNormalized->SetLineColor(kRed);
+  //hzvvMC->GetXaxis()->SetTitle("#slash{E}_{T} [GeV]");
+  hzvvNormalized->GetXaxis()->SetTitle("");
+  hzvvNormalized->GetXaxis()->SetTitleSize(0.06);
+  hzvvNormalized->GetYaxis()->SetTitle("a.u.");
+  hzvvNormalized->GetYaxis()->SetTitleSize(0.06);
+  hzvvNormalized->GetYaxis()->SetTitleOffset(0.7);
+  hzvvNormalized->GetYaxis()->CenterTitle();
+  leg2->AddEntry(hzvvNormalized,"Z(#nu#nu)+jets MC","lf");
+  leg2->AddEntry(hzllNormalized,"Z(#mu#mu)+jets MC","lf");
+  gStyle->SetStatStyle(0);
+  leg2->Draw(); 
+  leg2->SetMargin(0.3); 
+  leg2->SetBorderSize(0);
+  subpad2_2->cd();
+  ratioplot = new TH1D(*hzvvNormalized);
+  ratioplot->Divide(hzllNormalized);
+  ratioplot->SetStats(0);
+  ratioplot->GetXaxis()->SetLabelSize(0.10);
+  ratioplot->GetXaxis()->SetTitle("#slash{E}_{T} [GeV]");
+  ratioplot->GetXaxis()->SetTitleSize(0.14);
+  ratioplot->GetXaxis()->SetTitleOffset(0.8);
+  ratioplot->GetYaxis()->SetLabelSize(0.10);
+  ratioplot->GetYaxis()->SetTitle("Z(#nu#nu)/Z(#mu#mu)");
+  ratioplot->GetYaxis()->SetTitleSize(0.15);
+  ratioplot->GetYaxis()->SetTitleOffset(0.3);
+  ratioplot->GetYaxis()->CenterTitle();
+  ratioplot->GetYaxis()->SetRangeUser(0.5,1.5);
+  ratioplot->GetYaxis()->SetNdivisions(011);
+  ratioplot->DrawCopy("HE");   // use DrawCopy so that I can delete ratioplot pointer and use it again in the next canvas
+  ratioplot->SetMarkerStyle(8);  //medium dot
+  c2->SaveAs( (plotDirectoryPath + c2->GetName() + suffix + plotFileExtension).c_str() );
+
 
 }
 //end of macro
+
