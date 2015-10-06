@@ -50,7 +50,7 @@ zlljetsControlSample::zlljetsControlSample(TTree *tree, const char* inputSuffix)
 
 #endif
 
-void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag, vector< Double_t > &yRow, vector< Double_t > &eRow)
+void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag, vector< Double_t > &yRow, vector< Double_t > &eRow, vector< Double_t > &uncRow)
 {
 
    if (fChain == 0) return;
@@ -535,7 +535,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    Int_t NinvMassBins = (DILEPMASS_UP - DILEPMASS_LOW) / invMassBinWidth;
 
    //TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample in bins of met;#slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
-   TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample (%s gen if DY MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
+   TH1D *HzlljetsYieldsMetBin = new TH1D("HYieldsMetBin",Form("yields of %s control sample (%s gen if DY MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
    //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
    
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
@@ -907,6 +907,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    // entry point
    yRow.push_back(nTotalWeightedEvents);
    eRow.push_back(1.0000);
+   uncRow.push_back(sqrt(nTotalWeightedEvents));
    
    vector<Int_t> selStep;   //array to store index of step to form selection flow (might want to consider two or more steps together and not separated)
    //first step is the preselection before OS condition: doing like this because it might change (there can be or not MetNoLep cut, but I want the last step)
@@ -933,8 +934,10 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
      if (selStep[i] < 0) {
        yRow.push_back(-1);
        eRow.push_back(-1);
+       uncRow.push_back(-1);
      } else {
        yRow.push_back(zlljetsControlSample.nEvents[selStep[i]]);
+       uncRow.push_back(sqrt(yRow.back()));
        if (i == 0) eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/nTotalWeightedEvents);
        else if( (i != 0) && (zlljetsControlSample.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
        else eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/zlljetsControlSample.nEvents[selStep[i]-1]);

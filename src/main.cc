@@ -684,6 +684,7 @@ int main(int argc, char* argv[]) {
     //vector< vector<Double_t> > matrix;
     vector< Double_t > yieldsRow;
     vector< Double_t > efficiencyRow;
+    vector< Double_t > uncertaintyRow;
     Int_t nSample = 0;
     std::vector<std::string> sampleName;
     
@@ -691,7 +692,8 @@ int main(int argc, char* argv[]) {
 
     if (signalRegion_flag == 1) {
     
-      selectionDefinition.push_back("entry point");  // include MetNoLep
+      selectionDefinition.push_back("entry point");  
+      selectionDefinition.push_back("preselection");  // include metNoMu (only that for now)
       selectionDefinition.push_back("jet1pt");
       selectionDefinition.push_back("jetjetdphi");
       selectionDefinition.push_back("njets");
@@ -730,7 +732,7 @@ int main(int argc, char* argv[]) {
 
 	//============================================/
   
-	while ( (sampleFile >> parameterType) && (!(parameterType == "#")) ) {  // read only first object  here: if it is '#' it signal that another part is starting
+	while ( (sampleFile >> parameterType) && (!(parameterType == "#")) ) {  // read only first object  here: if it is '#' it signals that another part is starting
 
 	  if (parameterType == "#STOP") fileEndReached_flag = 1;   //tells me that the file is ended and I don't need to go on reading it.
 
@@ -798,12 +800,12 @@ int main(int argc, char* argv[]) {
 	  if (signalRegion_flag == 1) {
 
 	    monojet_SignalRegion tree( chain , sampleName[nSample].c_str());
-	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
+	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow, uncertaintyRow); 
 
 	  } else if (controlSample_flag == 1) {
 
 	    zlljetsControlSample tree( chain , sampleName[nSample].c_str());
-	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow); 
+	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow, uncertaintyRow); 
 
 	  }
 
@@ -834,41 +836,128 @@ int main(int argc, char* argv[]) {
 
     Int_t selectionSize = (yieldsRow.size() >= efficiencyRow.size()) ? (yieldsRow.size()/nSample) : (efficiencyRow.size()/nSample);
 
+    // ==================================
+
+    // before printing the table, I add another row with the sum of all "non data" column. 
+    // For the SR, it would be the sum of all backgrounds, regardless they are data-driven or MC estimate
+    // For the CR, it should be the sum of MC background for the Z(ll) sample.
+
+    for (Int_t i = 0; i < selectionSize; i++) {
+
+      Double_t lastValue = yieldsRow.back();   // keep track of last element to make the efficiency ratio 
+      // when i = 0, it is the last value before addding the "non-data" column, but it is not used because the efficiency is automatically set to 1.0
+      // for the other values of i, it is the last value (call it a), now we compute the following value (call it b) and compute the efficiency as b/a
+
+      yieldsRow.push_back(0.0);   // adding new element for each selection step
+      efficiencyRow.push_back(0.0);
+      uncertaintyRow.push_back(0.0);
+
+      for(Int_t j = 0; j < nSample; j++) {
+
+	// adding all values in the same row (i.e. for the same selection step). If an entry is negative (because that step was not considered for that sample), the previous step is summed)
+	Int_t vectorElement = i + j * selectionSize;
+
+	if (yieldsRow.at(vectorElement) < 0) {
+
+	  Int_t specialVectorElement = (i - 1) + j * selectionSize;
+	  yieldsRow.back() += yieldsRow.at(specialVectorElement);  
+	  uncertaintyRow.back() += uncertaintyRow.at(specialVectorElement) * uncertaintyRow.at(specialVectorElement);   // sum in quadrature of samples' uncertainties
+
+	} else {
+	  
+	  yieldsRow.back() += yieldsRow.at(vectorElement);  
+	  uncertaintyRow.back() += uncertaintyRow.at(vectorElement) * uncertaintyRow.at(vectorElement);   // sum in quadrature of samples' uncertainties
+
+	}
+
+      }
+
+      uncertaintyRow.back() = sqrt(uncertaintyRow.back());
+      if (i == 0) efficiencyRow.back() = 1.0;
+      else if ( (i != 0) && ( lastValue == 0 )  ) efficiencyRow.push_back(1.0000);  
+      // in the line above, if previous yield is 0, the next is also 0 and the efficiency is set to 1.0  (otherwise it would be of the form 0/0)
+      else efficiencyRow.push_back( yieldsRow.back()/lastValue );
+
+    }
+
+    // ==================================
+
+    selectionSize = (yieldsRow.size() >= efficiencyRow.size()) ? (yieldsRow.size()/(nSample+1)) : (efficiencyRow.size()/(nSample+1));  
+    //(nSample+1) because now there is also the sum on MC entries
+
     FILE* fp;
     string finalFileName = filename_base;
     finalFileName += "_yieldsTable.dat";
     if (unweighted_event_flag) finalFileName += "_weq1";   //means with weights equal to 1 (for debugging purposes)
 
     if ( (fp=fopen(finalFileName.c_str(),"w")) == NULL) {
+
       cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
+
     } else {
+
       cout<<"creating file '"<<finalFileName<<"' to save table with yields ..."<<endl;
       fprintf(fp,"#    step         ");
-      for(Int_t i = 0; i < nSample; i++) {
-	fprintf(fp,"%-16s ",sampleName[i].c_str());
+
+      for(Int_t i = 0; i <= nSample; i++) {
+
+	if (i == nSample) fprintf(fp,"%-16s ","all non-data");  // last column in file will hold the sum af all MC or backgrounds
+	else fprintf(fp,"%-16s ",sampleName[i].c_str());
+
       }
+
       fprintf(fp,"\n");
+
       for (Int_t i = 0; i < selectionSize; i++) {
+
 	fprintf(fp,"%-16s",selectionDefinition[i].c_str());
-	for(Int_t j = 0; j < nSample; j++) {
+
+	for(Int_t j = 0; j <= nSample; j++) {
 	  
-	  if (yieldsRow.at( i + j * selectionSize) < 0) {
+	  if (j == nSample) {
 
-	    string space = "//";
-	    fprintf(fp,"%7s ",space.c_str());
-	    fprintf(fp,"%5s    ",space.c_str());
+	    if (yieldsRow.at( i + j * selectionSize) < 0) {
 
-	  } else { 
+	      string space = "//";
+	      fprintf(fp,"%7s ",space.c_str());
+	      fprintf(fp,"%5s    ",space.c_str());
 
-	    if (yieldsRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf ",yieldsRow.at( i + j * selectionSize));  //	j * selectionSize refers to number for a sample, i refers to the selection step   
-	    else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
-	    fprintf(fp,"%5.1lf%%   ",(100 * efficiencyRow.at( i + j * selectionSize)));
+	    } else { 
+
+	      if (yieldsRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf ",yieldsRow.at( i + j * selectionSize));  //	j * selectionSize refers to number for a sample, i refers to the selection step   
+	      else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
+
+	      if (uncertaintyRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf%%   ",uncertaintyRow.at( i + j * selectionSize));
+	      else fprintf(fp,"%7.0lf%%   ",uncertaintyRow.at( i + j * selectionSize));
+
+	    }
+
+	  } else {
+
+	    if (yieldsRow.at( i + j * selectionSize) < 0) {
+
+	      string space = "//";
+	      fprintf(fp,"%7s ",space.c_str());
+	      fprintf(fp,"%5s    ",space.c_str());
+
+	    } else { 
+
+	      if (yieldsRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf ",yieldsRow.at( i + j * selectionSize));  //	j * selectionSize refers to number for a sample, i refers to the selection step   
+	      else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
+	      fprintf(fp,"%5.1lf%%   ",(100 * efficiencyRow.at( i + j * selectionSize)));
+
+	    }
 
 	  }
+
 	} 
+
 	fprintf(fp,"\n");
+
       }
+
       fclose(fp);
+
     }
 
     return 0;

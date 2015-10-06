@@ -50,7 +50,7 @@ monojet_SignalRegion::monojet_SignalRegion(TTree *tree, const char* inputSuffix)
 
 #endif
 
-void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag, vector< Double_t > &yRow, vector< Double_t > &eRow)
+void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_FLAG, const Int_t unweighted_event_flag, vector< Double_t > &yRow, vector< Double_t > &eRow, vector< Double_t > &uncRow)
 {
 
    if (fChain == 0) return;
@@ -222,11 +222,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    Double_t SUMWEIGHTS;   // ==============  To be initialized with proper value to compute event weight in MC ========================
    vector<Double_t> sumWeightVector;
-
    vector<Int_t> eventsInSubsamples;
-
-   mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
-   myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
 
    Double_t nTotalWeightedEvents = 0.0;     
 
@@ -240,6 +236,14 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    if (FILENAME_BASE.find("spring15") != std::string::npos) {
      using_spring15_sample_flag = 1;    
      cout << "Using spring15 samples" << endl;
+   }
+
+   Int_t using_spring15_25ns_sample_flag = 0;
+   if (FILENAME_BASE.find("spring15_25ns") != std::string::npos) {
+     using_spring15_25ns_sample_flag = 1;    
+     cout << "Using spring15_25ns samples" << endl;
+     mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
+     myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
    }
 
    if ( !ISDATA_FLAG && unweighted_event_flag) cout << "Warning: no weight applied to events (w = 1)" << endl;  // if MC with unit weight, make user know
@@ -341,6 +345,10 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
      UInt_t eventMask = 0; 
 
+     if (jentry%500000 == 0) {
+       cout << "entry: " << jentry << endl;
+     }
+
      if(!ISDATA_FLAG && !unweighted_event_flag) {
 
        // the following if statement is used to set the proper value of sumWeight, which changes depending on the HTbin or on the specific subsample.
@@ -348,25 +356,23 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
        // eventCounter is increased by the # of entries in the first subsample, SUMWEIGHTS is set and the htbin index is increased by 1.
        // the if condition will be fulfilled again when the next subsample starts being analyzed (note that jentry starts from 0, not from 1)
 
-       if (jentry == eventCounter) {
-	 eventCounter += eventsInSubsamples[htbin];
-	 SUMWEIGHTS = sumWeightVector[htbin];
-	 htbin++;
-	 cout << endl;
-	 cout << jentry << ":   " ;
-	 cout << "htbin = " << htbin << "  --->  ";   // it will print 1, 2, 3 ... but as an index it would be 0, 1, 2 ...
-	 cout << "sumWeight = " << SUMWEIGHTS << endl;
-	 cout << endl;
-       }
+       if (using_spring15_25ns_sample_flag) {
 
-       if (jentry%500000 == 0) {
-	 cout << jentry << ":   " ;
-	 cout << "htbin = " << htbin << "  --->  ";
-	 cout << "sumWeight = " << SUMWEIGHTS << endl;
-       }
+	 if (jentry == eventCounter) {
+	   eventCounter += eventsInSubsamples[htbin];
+	   SUMWEIGHTS = sumWeightVector[htbin];
+	   htbin++;
+	   cout << endl;
+	   cout << "entry = " << jentry << ":   " ;
+	   cout << "htbin = " << htbin << "  --->  ";   // it will print 1, 2, 3 ... but as an index it would be 0, 1, 2 ...
+	   cout << "sumWeight = " << SUMWEIGHTS << endl;
+	   cout << endl;
+	 }
 
-       // sumweights could be defined at the beginning of this programme according to the suffix 
-       if (using_spring15_sample_flag) newwgt = 1000 * LUMI * genWeight / SUMWEIGHTS;    // 1000 is because LUMI is in fb^-1 and xsec is in pb
+	 newwgt = 1000 * LUMI * xsec * genWeight / SUMWEIGHTS; 
+
+       } else if (using_spring15_sample_flag == 1 && using_spring15_25ns_sample_flag == 0) newwgt = 1000 * LUMI * vtxW * xsec * genWeight / SUMWEIGHTS;    
+       // 1000 is because LUMI is in fb^-1 and xsec is in pb
        // old wrong one:     newwgt = LUMI * vtxW * weight * LHEorigWeight; 
        else if (using_phys14_sample_flag) newwgt = LUMI * weight;   // for older trees (backward compatibility)
        else newwgt = LUMI * weight;   // for older trees (backward compatibility)
@@ -485,6 +491,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    // entry point
    yRow.push_back(nTotalWeightedEvents);
    eRow.push_back(1.0000);
+   uncRow.push_back(sqrt(nTotalWeightedEvents));
    
    vector<Int_t> selStep;   //array to store index of step to form selection flow (might want to consider two or more steps together and not separated)
 
@@ -502,8 +509,10 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
      if (selStep[i] < 0) {
        yRow.push_back(-1);
        eRow.push_back(-1);
+       uncRow.push_back(-1);
      } else {
        yRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]);
+       uncRow.push_back(sqrt(yRow.back()));
        if (i == 0) eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/nTotalWeightedEvents);
        else if( (i != 0) && (monojet_SignalRegion.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
        else eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/monojet_SignalRegion.nEvents[selStep[i]-1]);
