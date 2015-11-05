@@ -141,6 +141,8 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    // Double_t HLT_LEP2ETA;
    Double_t METNOLEP_START;
    string FILENAME_BASE;
+   string DIRECTORY_TO_SAVE_FILES;
+   string DIRECTORY_NAME;
 
    ifstream inputFile(configFileName);
 
@@ -176,12 +178,27 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 	 
 	 inputFile >> parameterName >> name;
 	 cout << right << setw(20) << parameterName << "  " << left << name << endl;
+
 	 if (parameterName == "FILENAME_BASE") {
 
 	   FILENAME_BASE = name; 
 	   if ( !ISDATA_FLAG && unweighted_event_flag) FILENAME_BASE += "_weq1";  // if using unit weight, add _weq1 to filename (weq1 means weight = 1)
 
 	 }
+
+	 if (parameterName == "DIRECTORY_PATH") {  // name of directory where files are saved
+
+	  DIRECTORY_TO_SAVE_FILES = name;
+	  //std::cout << "Files will be saved in '" << name << "' ." <<std::endl;
+
+	} 
+
+	if (parameterName == "DIRECTORY_NAME") {  // name of directory where files are saved
+
+	  DIRECTORY_NAME = name;
+	  //std::cout << "Files will be saved in directory named '" << name << "' ." <<std::endl;
+
+	} 
 
        }
 
@@ -197,6 +214,8 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
      exit(EXIT_FAILURE);
 
    }
+
+   string outputFolder =  DIRECTORY_TO_SAVE_FILES + DIRECTORY_NAME + "/";
 
    //Double_t metBinEdges[] = {200., 250., 300., 350., 400., 500., 650., 1000.};
    Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
@@ -281,9 +300,9 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    cout << "Opening file " <<ROOT_FNAME<< endl;
 
-   TFile *rootFile = new TFile(ROOT_FNAME,"RECREATE");
+   TFile *rootFile = new TFile((outputFolder + ROOT_FNAME).c_str(),"RECREATE");
    if (!rootFile || !rootFile->IsOpen()) {
-     cout<<"Error: file \""<<ROOT_FNAME<<"\" was not opened."<<endl;
+     cout<<"Error: file \""<<(outputFolder + ROOT_FNAME).c_str()<<"\" was not opened."<<endl;
      exit(EXIT_FAILURE);
    }
  
@@ -305,15 +324,15 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    TH1D *Hjet1ptDistribution;  
    TH1D *Hjet2ptDistribution;
 
-   if (using_phys14_sample_flag) {
-     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",(Int_t)(1000.0-METNOLEP_START)/10.0,METNOLEP_START,1000.0);
-     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",97,30,1000); 
-     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",97,30,1000);
-   } else if (using_spring15_sample_flag) {
-     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
-     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
-     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
-   }
+   //if (using_phys14_sample_flag) {
+   HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",100,0.0,1000.0);
+   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",100,0.0,1000.0); 
+   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",100,0.0,1000.0);
+   // } else if (using_spring15_sample_flag) {
+   //   HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
+   //   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
+   //   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
+   // }
 
    // saving histograms with bin edges of other histograms used (e.g. content of metBinEdges array ...)
    TH1D *HmetBinEdges = new TH1D("HmetBinEdges","bin edges for met distributions",nMetBins+1,0.0,nMetBins+1);
@@ -426,8 +445,8 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    mySpaces(cout,2);
    myPrintYieldsMetBinInStream(cout, HYieldsMetBin, metBinEdges, nMetBins);
  
-   cout<<"creating file '"<<TXT_FNAME<<"' ..."<<endl;
-   ofstream myfile(TXT_FNAME,ios::out);
+   cout<<"creating file '"<<TXT_FNAME<<"' in folder "<< outputFolder <<" ..."<<endl;
+   ofstream myfile((outputFolder + TXT_FNAME).c_str(),ios::out);
 
    if ( !myfile.is_open() ) {
 
@@ -505,21 +524,19 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    selStep.push_back(monojet_SignalRegion.whichStepHas(gammaLooseVetoC.get2ToId()));
 
    for(Int_t i = 0; i < selStep.size(); i++) {
-
-     if (selStep[i] < 0) {
-       yRow.push_back(-1);
-       eRow.push_back(-1);
-       uncRow.push_back(-1);
-     } else {
-       yRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]);
-       uncRow.push_back(sqrt(yRow.back()));
-       if (i == 0) eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/nTotalWeightedEvents);
-       else if( (i != 0) && (monojet_SignalRegion.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
-       else eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/monojet_SignalRegion.nEvents[selStep[i]-1]);
-     }
+  
+     yRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]);
+     uncRow.push_back(sqrt(yRow.back()));
+     if (i == 0) eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/nTotalWeightedEvents);
+     else if( (i != 0) && (monojet_SignalRegion.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
+     else eRow.push_back(monojet_SignalRegion.nEvents[selStep[i]]/monojet_SignalRegion.nEvents[selStep[i]-1]);
 
    }
 
+   // filling last bin with overflow
+   myAddOverflowInLastBin(HmetNoLepDistribution);
+   myAddOverflowInLastBin(Hjet1ptDistribution);
+   myAddOverflowInLastBin(Hjet2ptDistribution);
 
    rootFile->Write();
 
@@ -528,12 +545,12 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    //creating a .tex file to build tables with data
    FILE *fp;
-   fp = fopen(TEX_FNAME,"w");
+   fp = fopen((outputFolder + TEX_FNAME).c_str(),"w");
 
    if ( fp == NULL)  cout<<"Error: '"<<TEX_FNAME<<"' not opened"<<endl;
    else {
 
-     cout<<"creating file '"<<TEX_FNAME<<"' ..."<<endl;
+     cout<<"creating file '"<<TEX_FNAME<<" in folder " << outputFolder << "' ..."<<endl;
      myAddDefaultPackages(fp,TEX_FNAME);
      fprintf(fp,"\\begin{document}\n");
      fprintf(fp,"\n");
