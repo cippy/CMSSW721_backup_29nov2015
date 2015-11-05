@@ -30,6 +30,8 @@ int main(int argc, char* argv[]) {
 
 //================ Creating chain 
 
+  std::cout << std::endl;
+
   if (argc < 2) {
     std::cout << "Not enough arguments: launch as -> "; 
     std::cout << argv[0] << " inputfile " <<std::endl;
@@ -166,18 +168,18 @@ int main(int argc, char* argv[]) {
 	if (parameterName == "PATH_TO_SAMPLES_4CS") {  // path to file with CS samples and some options
 
 	  controlSample_flag = 1;
-	  fileWithSamplesPath= name;
+	  fileWithSamplesPath = name;
 	  std::cout << "Performing analysis on control samples." <<std::endl;
-	  std::cout << setw(20) << "file pointing to CS samples: " << fileWithSamplesPath<<std::endl;
+	  std::cout << setw(20) << "File pointing to CS samples: " << fileWithSamplesPath<<std::endl;
 
 	} 
 
 	if (parameterName == "PATH_TO_SAMPLES_4SR") {  // path to file with CS samples and some options
 
 	  signalRegion_flag = 1;
-	  fileWithSamplesPath= name;
+	  fileWithSamplesPath = name;
 	  std::cout << "Performing analysis on signal region." <<std::endl;
-	  std::cout << setw(20) << "file pointing to SR samples: " << fileWithSamplesPath<<std::endl;
+	  std::cout << setw(20) << "File pointing to SR samples: " << fileWithSamplesPath<<std::endl;
 
 	} 
 
@@ -210,20 +212,109 @@ int main(int argc, char* argv[]) {
 
   // =========  Creating directory where files are saved ============
 
-  struct stat st = {0};
+  if ( (directory_to_save_files != "") && (directory_name != "") ) {
 
-  std::cout << "Creating new directory " << directory_to_save_files + directory_name << " ... " << std::endl;
+    struct stat st = {0};
 
-  if (stat((directory_to_save_files + directory_name).c_str(), &st) == -1) {
+    string outputFolder = directory_to_save_files + directory_name;
+    std::cout << "Creating new directory " << outputFolder << " ... " << std::endl;
 
-    if (mkdir((directory_to_save_files + directory_name).c_str(),0755) == 0) {   // 755 refers to access rights
+    if (stat(outputFolder.c_str(), &st) == -1) {
 
-      std::cout << "Directory was created successfully!" << std::endl; 
+      if (mkdir(outputFolder.c_str(),0755) == 0) {   // 755 refers to access rights
+
+	std::cout << "Directory was created successfully!" << std::endl; 
     
-    } else std::cout << "Error occurred when creating directory!" << std::endl; 
-    // error will never occur with stat(): stat is -1 if directory doesn't exist, so it is created by mkdir(), which fails if directory already exists (but in this case the stat() prevents programme from entering and doing mkdir()
+      } else std::cout << "Error occurred when creating directory!" << std::endl; 
+      // error will never occur with stat(): stat is -1 if directory doesn't exist, so it is created by mkdir(), which fails if directory already exists (but in this case the stat() prevents programme from entering and doing mkdir()
 
-  } else std::cout << "Warning: maybe directory already exists" << std::endl;
+    } else std::cout << "Warning: maybe directory already exists" << std::endl;
+
+    // ================== saving content of config file in "report.txt" =====
+
+    string reportFileName = "report.txt";
+    ofstream reportFile((outputFolder + "/" + reportFileName).c_str(),ios::out);
+
+    if ( !reportFile.is_open() ) {
+
+      cout<<"Error: unable to open file " << reportFileName <<" !"<<endl;
+      exit(EXIT_FAILURE);
+     
+    }
+
+    //opening inputFile named configFileName again to save content in file named "report.txt"
+
+    inputFile.open(configFileName);
+
+    if (inputFile.is_open()) {
+     
+      cout << "Saving content of " << configFileName << " file in "<< reportFileName << " located in " << outputFolder << endl;
+      reportFile << "Content of " << configFileName << endl;
+      reportFile << endl;
+
+      Double_t value;
+      string name;
+      string parameterName;
+      string parameterType;
+
+      while (inputFile >> parameterType ) {
+
+	if (parameterType == "NUMBER") {
+
+	  inputFile >> parameterName >> value;
+	  reportFile << right << setw(20) << parameterName << "  " << left << value << endl;
+
+	} else if (parameterType == "STRING") {
+	 
+	  inputFile >> parameterName >> name;
+	  reportFile << right << setw(20) << parameterName << "  " << left << name << endl;
+
+	}
+
+      }
+     
+      inputFile.close();
+        
+      reportFile << endl;
+      reportFile << endl;
+                                                                                                             
+    } else {
+
+      cout << "Error: could not open file " << configFileName << " to save content in "<< reportFileName << endl;
+      exit(EXIT_FAILURE);
+
+    }
+
+    //now also opening inputFile named fileWithSamplesPath to save content in file named "report.txt"
+
+    inputFile.open(fileWithSamplesPath.c_str());
+
+    if (inputFile.is_open()) {
+
+      cout << "Saving content of " << fileWithSamplesPath << " file in "<< reportFileName << " located in " << outputFolder << endl;
+      reportFile << "Content of " << fileWithSamplesPath << endl;
+      reportFile << endl;
+
+      string str;
+
+      while (getline(inputFile,str)) {
+
+	reportFile << str << endl;
+
+      }
+
+      inputFile.close();
+  
+    } else {
+
+      cout << "Error: could not open file " << fileWithSamplesPath << " to save content in "<< reportFileName << endl;
+      exit(EXIT_FAILURE);
+
+    }
+
+    reportFile.close();
+
+  }
 
   // ==================================================
 
