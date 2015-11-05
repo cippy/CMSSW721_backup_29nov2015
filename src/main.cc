@@ -8,6 +8,9 @@
 #include <cstring>
 #include <cmath>
 #include <math.h>
+#include <sys/types.h>  // for mkdir and stat
+#include <sys/stat.h>    // for mkdir and stat
+#include <unistd.h>      // for stat
 
 #include <TTree.h>
 #include <TChain.h>
@@ -15,7 +18,6 @@
 #include <TFile.h>
 #include "EmanTreeAnalysis.h"
 #include "AdishTreeAnalysis.h"
-#include "whichApplication.h"
 
 using namespace myAnalyzerTEman;
 using namespace myAnalyzerTAdish;
@@ -27,485 +29,6 @@ int main(int argc, char* argv[]) {
 
 
 //================ Creating chain 
- 
-#if Application == 1 
-
-  if (argc < 2) {
-    std::cout << "Not enough arguments: launch as -> "; 
-    std::cout << argv[0] << " inputfile " <<std::endl;
-    exit(EXIT_FAILURE);
-  }
-  std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-
-  char inputFileName[200];
-  char buffer1[200];
-  char buffer2[200];
-  char rootFileToChain[500];
-  char rootFriendFileToChain[500];
-
-  //vector< vector<Double_t> > matrix;
-  vector< Double_t > yieldsRow;
-  vector< Double_t > efficiencyRow;
-  Int_t nSample = 0;
-  std::vector<std::string> sampleName;
-  sampleName.push_back("DYJetsToLL");
-  sampleName.push_back("Top");
-  sampleName.push_back("QCD");
-  sampleName.push_back("GJets");
-  sampleName.push_back("WJetsToLNu");
-  sampleName.push_back("ZJetsToNuNu");
-  std::vector<std::string> selectionDefinition;
-  selectionDefinition.push_back("entry point");
-  selectionDefinition.push_back("2 lept SF/OS");
-  selectionDefinition.push_back("muons");
-  selectionDefinition.push_back("tight Tag");
-  selectionDefinition.push_back("mll");
-  selectionDefinition.push_back("njets");
-  selectionDefinition.push_back("jet1pt > 110");
-  selectionDefinition.push_back("jetjetdphi");
-  selectionDefinition.push_back("electron veto");
-  selectionDefinition.push_back("photon veto");
-
-  strcpy(inputFileName,argv[1]);
-
-  ifstream *inputFile = new ifstream(inputFileName);
-  while( !(inputFile->eof()) ){
-    inputFile->getline(buffer1,200);
-    inputFile->getline(buffer2,200);
-    if ((!strstr(buffer1,"#") && !(strspn(buffer1," ") == strlen(buffer1))) && 
-          (!strstr(buffer2,"#") && !(strspn(buffer2," ") == strlen(buffer2))))
-      {
-        sscanf(buffer1,"%s",rootFileToChain);
-	sscanf(buffer2,"%s",rootFriendFileToChain);
-        
-	std::cout << "Creating chain ..." << std::endl;
-	TChain* chain = new TChain("tree");
-	chain->Add(TString(rootFileToChain));
-
-        std::cout << "Adding friend to chain ..." << std::endl;
-	TChain* chFriend = new TChain("mjvars/t");
-	chain->AddFriend("mjvars/t",TString(rootFriendFileToChain));
-	
-	if(!chain) {
-	  std::cout << "Error: chain not created. End of programme" << std::endl;
-	  exit(EXIT_FAILURE);
-	}
-	nSample++;
-	std::cout << "analysing sample n " << nSample << " : " << sampleName[nSample-1]  << std::endl; 
-	std::cout<<chain->GetEntries()<<std::endl;      
-	//================ Run Analysis
-	//zmumujetsAna tree( chain );
-	zmumujetsControlSample tree( chain , sampleName[nSample-1].c_str());
-	tree.loop(yieldsRow, efficiencyRow); 
-	//matrix.push_back(yieldsRow);
-	//matrix.push_back(efficiencyRow);
-	delete chain;
-	delete chFriend;
-
-      }
-    	
-  }
-
-  if ( yieldsRow.size() != efficiencyRow.size() ) {
-    std::cout << "Warning:  different number of steps for yields and efficiencies." << std::endl; 
-    std::cout << "Will use the bigger one." << std::endl; 
-  }
-  Int_t selectionSize = (yieldsRow.size() >= efficiencyRow.size()) ? (yieldsRow.size()/nSample) : (efficiencyRow.size()/nSample);
-  FILE* fp;
-  const char* finalFileName = "zmumujetsCSandBkg_yieldsEff.dat";
-  if ( (fp=fopen(finalFileName,"w")) == NULL) {
-    cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
-  } else {
-    cout<<"creating file '"<<finalFileName<<"' ..."<<endl;
-    fprintf(fp,"#    step         ");
-    for(Int_t i = 0; i < nSample; i++) {
-      fprintf(fp,"%-16s ",sampleName[i].c_str());
-    }
-    fprintf(fp,"\n");
-    for (Int_t i = 0; i < selectionSize; i++) {
-      fprintf(fp,"%-16s",selectionDefinition[i].c_str());
-      for(Int_t j = 0; j < nSample; j++) {
-	if (yieldsRow.at( i + j * selectionSize) < 1000) fprintf(fp,"%7.2lf ",yieldsRow.at( i + j * selectionSize));	   
-	else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
-	fprintf(fp,"%5.1lf%%   ",(100 * efficiencyRow.at( i + j * selectionSize)));
-      } 
-      fprintf(fp,"\n");
-    }
-    fclose(fp);
-  }
-
-  inputFile->close();
-  delete inputFile;
-
-#endif
-
-#if Application == 2
-
-  std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-
-  zmumujetsAna tree( chain );
-  tree.loop();
-  
-  delete chain;
-  delete chFriend;
-
-#endif
-
-#if Application == 3
-
-  std::cout<<"Using Emanuele's trees with skim on 2 leptons"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-
-  zeejetsAna tree( chain );
-  tree.loop();
-  
-  delete chain;
-  delete chFriend;
-
-#endif
-
-#if Application == 4 
-
-  if (argc < 2) {
-    std::cout << "Not enough arguments: launch as -> "; 
-    std::cout << argv[0] << " inputfile " <<std::endl;
-    exit(EXIT_FAILURE);
-  }
-  std::cout<<"Using Emanuele's trees with skim on 2 leptons"<<std::endl;
-
-  char inputFileName[200];
-  char buffer1[200];
-  char buffer2[200];
-  char rootFileToChain[500];
-  char rootFriendFileToChain[500];
-
-  //vector< vector<Double_t> > matrix;
-  vector< Double_t > yieldsRow;
-  vector< Double_t > efficiencyRow;
-  Int_t nSample = 0;
-  std::vector<std::string> sampleName;
-  sampleName.push_back("DYJetsToLL");
-  sampleName.push_back("Top");
-  sampleName.push_back("QCD");
-  //sampleName.push_back("GJets");
-  sampleName.push_back("WJetsToLNu");
-  sampleName.push_back("ZJetsToNuNu");
-  std::vector<std::string> selectionDefinition;
-  selectionDefinition.push_back("entry point");
-  selectionDefinition.push_back("2 lept SF/OS");
-  selectionDefinition.push_back("electrons");
-  selectionDefinition.push_back("tight Tag");
-  selectionDefinition.push_back("mll");
-  selectionDefinition.push_back("elemet > 200");
-  selectionDefinition.push_back("njets");
-  selectionDefinition.push_back("jet1pt > 110");
-  selectionDefinition.push_back("jetjetdphi");
-  selectionDefinition.push_back("muon veto");
-  selectionDefinition.push_back("photon veto");
-
-  strcpy(inputFileName,argv[1]);
-
-  ifstream *inputFile = new ifstream(inputFileName);
-  while( !(inputFile->eof()) ){
-    inputFile->getline(buffer1,200);
-    inputFile->getline(buffer2,200);
-    if ((!strstr(buffer1,"#") && !(strspn(buffer1," ") == strlen(buffer1))) && 
-          (!strstr(buffer2,"#") && !(strspn(buffer2," ") == strlen(buffer2))))
-      {
-        sscanf(buffer1,"%s",rootFileToChain);
-	sscanf(buffer2,"%s",rootFriendFileToChain);
-        
-	std::cout << "Creating chain ..." << std::endl;
-	TChain* chain = new TChain("tree");
-	chain->Add(TString(rootFileToChain));
-
-        std::cout << "Adding friend to chain ..." << std::endl;
-	TChain* chFriend = new TChain("mjvars/t");
-	chain->AddFriend("mjvars/t",TString(rootFriendFileToChain));
-	
-	if(!chain) {
-	  std::cout << "Error: chain not created. End of programme" << std::endl;
-	  exit(EXIT_FAILURE);
-	}
-	nSample++;
-	std::cout << "analysing sample n " << nSample << " : " << sampleName[nSample-1]  << std::endl; 
-	std::cout<<chain->GetEntries()<<std::endl;      
-	//================ Run Analysis
-	//zeejetsAna tree( chain );
-	zeejetsControlSample tree( chain , sampleName[nSample-1].c_str());
-	tree.loop(yieldsRow, efficiencyRow); 
-	//matrix.push_back(yieldsRow);
-	//matrix.push_back(efficiencyRow);
-	delete chain;
-	delete chFriend;
-
-      }
-    	
-  }
-
-  if ( yieldsRow.size() != efficiencyRow.size() ) {
-    std::cout << "Warning:  different number of steps for yields and efficiencies." << std::endl; 
-    std::cout << "Will use the bigger one." << std::endl; 
-  }
-  Int_t selectionSize = (yieldsRow.size() >= efficiencyRow.size()) ? (yieldsRow.size()/nSample) : (efficiencyRow.size()/nSample);
-  FILE* fp;
-  const char* finalFileName = "zeejetsCSandBkg_yieldsEff.dat";
-  if ( (fp=fopen(finalFileName,"w")) == NULL) {
-    cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
-  } else {
-    cout<<"creating file '"<<finalFileName<<"' ..."<<endl;
-    fprintf(fp,"#    step         ");
-    for(Int_t i = 0; i < nSample; i++) {
-      fprintf(fp,"%-16s ",sampleName[i].c_str());
-    }
-    fprintf(fp,"\n");
-    for (Int_t i = 0; i < selectionSize; i++) {
-      fprintf(fp,"%-16s",selectionDefinition[i].c_str());
-      for(Int_t j = 0; j < nSample; j++) {
-	if (yieldsRow.at( i + j * selectionSize) < 1000) fprintf(fp,"%7.2lf ",yieldsRow.at( i + j * selectionSize));	   
-	else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
-	fprintf(fp,"%5.1lf%%   ",(100 * efficiencyRow.at( i + j * selectionSize)));
-      } 
-      fprintf(fp,"\n");
-    }
-    fclose(fp);
-  }
-
-  inputFile->close();
-  delete inputFile;
-
-#endif
-
-#if Application == 5
-
-  std::cout<<"Using Emanuele's trees with skim on 2 leptons"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-
-  zmumujetsAna_LepSk tree( chain );
-  tree.loop();
-  
-  delete chain;
-  delete chFriend;
-
-#endif
-
-#if Application == 6
-
-  if (argc < 2) {
-    std::cout << "Not enough arguments: launch as -> "; 
-    std::cout << argv[0] << " inputfile " <<std::endl;
-    std::cout << "inputfile is a configuration file containing thresholds and other parameters" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  char configFileName[200];
-  std::strcpy(configFileName,argv[1]);
-
-  std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/ZJetsToNuNu/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/ZJetsToNuNu/evVarFriend_ZJetsToNuNu.root");
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-
-  znunujetsAna tree( chain );
-  tree.loop(configFileName);
-  
-  delete chain;
-  delete chFriend;
-
-#endif
-
-#if Application == 7
-
-#if defined MUON
-
-  std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-#elif defined ELECTRON
-
-  std::cout<<"Using Emanuele's trees with skim on 2 leptons"<<std::endl;
-  std::cout << "Creating chain ..." << std::endl;
-  TChain* chain = new TChain("tree");
-  chain->Add("/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/tree.root");
-  TChain* chFriend = new TChain("mjvars/t");
-  chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-#endif
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-
-  zlljetsAna tree( chain );
-  tree.loop();
-  
-  delete chain;
-  delete chFriend;
-
-#endif
-
-
-#if Application == 8
-
-  if (argc < 2) {
-    std::cout << "Not enough arguments: launch as -> "; 
-    std::cout << argv[0] << " inputfile " <<std::endl;
-    std::cout << "inputfile is a configuration file containing thresholds and other parameters" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  char configFileName[200];
-  std::strcpy(configFileName,argv[1]);
-
-  ifstream inputFile(configFileName);
-  Double_t muonOrElectronOrNeutrino_PDGID;
-
-   if (inputFile.is_open()) {
-
-     Double_t value;
-     string parameterName;
-     while (inputFile >> parameterName >> value) {
-
-       if (parameterName == "LEP_PDG_ID") {
-
-	 muonOrElectronOrNeutrino_PDGID = (Int_t) value;
-	 std::cout << "lepton_pdgID = " << value <<std::endl;
-
-	 if (fabs(muonOrElectronOrNeutrino_PDGID) == 13) {
-	   std::cout << "Analysis of Z->mumu" << std::endl;
-	 } else if (fabs(muonOrElectronOrNeutrino_PDGID) == 11) {
-	   std::cout << "Analysis of Z->ee" << std::endl;
-	 } else if (fabs(muonOrElectronOrNeutrino_PDGID) == 12 || fabs(muonOrElectronOrNeutrino_PDGID) == 14 || fabs(muonOrElectronOrNeutrino_PDGID) == 16) {
-	   std::cout << "Analysis of Z->nunu (any flavour)" << std::endl;
-	 }
-
-       }
-
-     }
-
-     inputFile.close();
-                                                                                                                         
-   } else {
-
-     cout << "Error: could not open file " << configFileName << endl;
-     exit(EXIT_FAILURE);
-
-   }
-
-   TChain* chain = NULL;
-   TChain* chFriend = NULL;
-
-   if (fabs(muonOrElectronOrNeutrino_PDGID) == 13) {
-
-     std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-     std::cout << "Creating chain ..." << std::endl;
-     chain = new TChain("tree");
-     chain->Add("/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/tree.root");
-     chFriend = new TChain("mjvars/t");
-     chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-   } else if (fabs(muonOrElectronOrNeutrino_PDGID) == 11) {
-
-     std::cout<<"Using Emanuele's trees with skim on 2 leptons (biased Axe)"<<std::endl;
-     std::cout << "Creating chain ..." << std::endl;
-     chain = new TChain("tree");
-     chain->Add("/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/tree.root");
-     chFriend = new TChain("mjvars/t");
-     chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_2LepGoodSkimVeto/DYJetsToLL_M50/evVarFriend_DYJetsToLL_M50.root");
-
-   } else if (fabs(muonOrElectronOrNeutrino_PDGID) == 12 || fabs(muonOrElectronOrNeutrino_PDGID) == 14 || fabs(muonOrElectronOrNeutrino_PDGID) == 16) {
-
-     std::cout<<"Using Emanuele's trees with skim on mumet > 200"<<std::endl;
-     std::cout << "Creating chain ..." << std::endl;
-     chain = new TChain("tree");
-     chain->Add("/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/ZJetsToNuNu/tree.root");
-     chFriend = new TChain("mjvars/t");
-     chain->AddFriend("mjvars/t","/cmshome/ciprianim/edimarcoTree/tree_metNoMuSkim200/ZJetsToNuNu/evVarFriend_ZJetsToNuNu.root");
-
-   }
-
-  if(!chain) {
-    std::cout << "Error: chain not created. End of programme" << std::endl;
-    exit(EXIT_FAILURE);
-  } 
-
-  std::cout<<chain->GetEntries()<<std::endl;      
-  //================ Run Analysis
-  if (fabs(muonOrElectronOrNeutrino_PDGID) == 13 || fabs(muonOrElectronOrNeutrino_PDGID) == 11) {
-
-    zlljetsAna_new tree( chain );
-    tree.loop(configFileName);
-
-  } else if (fabs(muonOrElectronOrNeutrino_PDGID) == 12 || fabs(muonOrElectronOrNeutrino_PDGID) == 14 || fabs(muonOrElectronOrNeutrino_PDGID) == 16) {
-
-    znunujetsAna tree( chain );
-    tree.loop(configFileName);
-
-  }
-
-  delete chain;
-  delete chFriend;
-
-#endif
-
-#if Application == 9
-
-  
 
   if (argc < 2) {
     std::cout << "Not enough arguments: launch as -> "; 
@@ -532,6 +55,8 @@ int main(int argc, char* argv[]) {
   Int_t signalRegion_flag = 0;
   string fileWithSamplesPath = "";
   string filename_base = "";
+  string directory_to_save_files = "";
+  string directory_name = "";
 
   if (argc > 2 ) {
 
@@ -656,6 +181,20 @@ int main(int argc, char* argv[]) {
 
 	} 
 
+	if (parameterName == "DIRECTORY_PATH") {  // name of directory where files are saved
+
+	  directory_to_save_files = name;
+	  std::cout << "Files will be saved in '" << name << "' ." <<std::endl;
+
+	} 
+
+	if (parameterName == "DIRECTORY_NAME") {  // name of directory where files are saved
+
+	  directory_name = name;
+	  std::cout << "Files will be saved in directory named '" << name << "' ." <<std::endl;
+
+	} 
+
       }
 
     }
@@ -664,10 +203,29 @@ int main(int argc, char* argv[]) {
                                                                                                                          
   } else {
 
-    cout << "Error: could not open file " << configFileName << endl;
+    std::cout << "Error: could not open file " << configFileName << std::endl;
     exit(EXIT_FAILURE);
 
   }
+
+  // =========  Creating directory where files are saved ============
+
+  struct stat st = {0};
+
+  std::cout << "Creating new directory " << directory_to_save_files + directory_name << " ... " << std::endl;
+
+  if (stat((directory_to_save_files + directory_name).c_str(), &st) == -1) {
+
+    if (mkdir((directory_to_save_files + directory_name).c_str(),0755) == 0) {   // 755 refers to access rights
+
+      std::cout << "Directory was created successfully!" << std::endl; 
+    
+    } else std::cout << "Error occurred when creating directory!" << std::endl; 
+    // error will never occur with stat(): stat is -1 if directory doesn't exist, so it is created by mkdir(), which fails if directory already exists (but in this case the stat() prevents programme from entering and doing mkdir()
+
+  } else std::cout << "Warning: maybe directory already exists" << std::endl;
+
+  // ==================================================
 
   if (controlSample_flag == 1 || signalRegion_flag == 1) {
 
@@ -840,44 +398,56 @@ int main(int argc, char* argv[]) {
 
     // before printing the table, I add another row with the sum of all "non data" column. 
     // For the SR, it would be the sum of all backgrounds, regardless they are data-driven or MC estimate
-    // For the CR, it should be the sum of MC background for the Z(ll) sample.
+    // For the CR, it should be the sum of MC background for the Z(ll) sample (now for semplicity it is the sum of all MC).
+
+    // suppose I have tre samples A, B, C and a selection with three steps 1, 2, 3. Then, yieldsRow is filled as A123 B123 C123 (9 entries, the letter refers to the specific sample)
+    // to build the table, which is created row by row, we read the vector as A1, B1, C1, A2, B2 ... so that the table looks like
+    //
+    //   sample A     sample B     sample C
+    //        A1                 B1                C1
+    //        A2                 B2                C2
+    //        A3                 B3                C3
+    //
+    // next to yields there are the efficiency or the uncertainties (could add both but table would get too crowded)
+    //
+    // now we want to add an additional column with the sum of entries for the different samples
+    // so now we add S123 to yieldsRow (S stands for sum), where Si = Ai + Bi +Ci
 
     for (Int_t i = 0; i < selectionSize; i++) {
 
       Double_t lastValue = yieldsRow.back();   // keep track of last element to make the efficiency ratio 
-      // when i = 0, it is the last value before addding the "non-data" column, but it is not used because the efficiency is automatically set to 1.0
+      // when i = 0, it is the last value before adding the "non-data" column (C3 in the previous example), but it is not used because the efficiency is automatically set to 1.0
       // for the other values of i, it is the last value (call it a), now we compute the following value (call it b) and compute the efficiency as b/a
 
       yieldsRow.push_back(0.0);   // adding new element for each selection step
       efficiencyRow.push_back(0.0);
       uncertaintyRow.push_back(0.0);
 
-      for(Int_t j = 0; j < nSample; j++) {
+      for(Int_t j = 0; j < nSample; j++) {  
 
-	// adding all values in the same row (i.e. for the same selection step). If an entry is negative (because that step was not considered for that sample), the previous step is summed)
-	Int_t vectorElement = i + j * selectionSize;
+	// must skip sample with data, if present
 
-	if (yieldsRow.at(vectorElement) < 0) {
+	if ( (std::strcmp("data",sampleName[j].c_str())) ) {  //std::strcmp returns 0 when the strings are equal. otherwise it returns a non zero value
 
-	  Int_t specialVectorElement = (i - 1) + j * selectionSize;
-	  yieldsRow.back() += yieldsRow.at(specialVectorElement);  
-	  uncertaintyRow.back() += uncertaintyRow.at(specialVectorElement) * uncertaintyRow.at(specialVectorElement);   // sum in quadrature of samples' uncertainties
+	  // adding all values in the same row (i.e. for the same selection step). If an entry is negative (because that step was not considered for that sample), the previous step is summed)
+	  Int_t vectorElement = i + j * selectionSize;
 
-	} else {
+	  if (yieldsRow.at(vectorElement) < 0) vectorElement = (i - 1) + j * selectionSize;  
+	  // can be negative when that step was not filled for a given sample (e.g. the recoGen match is only for DY sample in Z+jets CS)
 	  
 	  yieldsRow.back() += yieldsRow.at(vectorElement);  
-	  uncertaintyRow.back() += uncertaintyRow.at(vectorElement) * uncertaintyRow.at(vectorElement);   // sum in quadrature of samples' uncertainties
+	  uncertaintyRow.back() += uncertaintyRow.at(vectorElement) * uncertaintyRow.at(vectorElement);   // sum in quadrature of samples' uncertainties  
 
 	}
 
-      }
+      }     // end of for(Int_t j = 0; j < nSample; j++)
 
       uncertaintyRow.back() = sqrt(uncertaintyRow.back());
       if (i == 0) efficiencyRow.back() = 1.0;
-      else if ( (i != 0) && ( lastValue == 0 )  ) efficiencyRow.push_back(1.0000);  
+      else if ( (i != 0) && ( lastValue == 0 )  ) efficiencyRow.back() = 1.0000;  
       // in the line above, if previous yield is 0, the next is also 0 and the efficiency is set to 1.0  (otherwise it would be of the form 0/0)
-      else efficiencyRow.push_back( yieldsRow.back()/lastValue );
-
+      else efficiencyRow.back() = yieldsRow.back()/lastValue;
+     
     }
 
     // ==================================
@@ -887,16 +457,17 @@ int main(int argc, char* argv[]) {
 
     FILE* fp;
     string finalFileName = filename_base;
-    finalFileName += "_yieldsTable.dat";
+    finalFileName += "_yieldsTable";
     if (unweighted_event_flag) finalFileName += "_weq1";   //means with weights equal to 1 (for debugging purposes)
+    finalFileName += ".dat";
 
-    if ( (fp=fopen(finalFileName.c_str(),"w")) == NULL) {
+    if ( (fp=fopen((directory_to_save_files + directory_name + "/" + finalFileName).c_str(),"w")) == NULL) {
 
       cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
 
     } else {
 
-      cout<<"creating file '"<<finalFileName<<"' to save table with yields ..."<<endl;
+      cout<<"creating file '"<<finalFileName<<"' to save table with yields in folder " << (directory_to_save_files + directory_name + "/").c_str() << " ..."<<endl;
       fprintf(fp,"#    step         ");
 
       for(Int_t i = 0; i <= nSample; i++) {
@@ -927,8 +498,8 @@ int main(int argc, char* argv[]) {
 	      if (yieldsRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf ",yieldsRow.at( i + j * selectionSize));  //	j * selectionSize refers to number for a sample, i refers to the selection step   
 	      else fprintf(fp,"%7.0lf ",yieldsRow.at( i + j * selectionSize));
 
-	      if (uncertaintyRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf%%   ",uncertaintyRow.at( i + j * selectionSize));
-	      else fprintf(fp,"%7.0lf%%   ",uncertaintyRow.at( i + j * selectionSize));
+	      if (uncertaintyRow.at( i + j * selectionSize) < 10) fprintf(fp,"%7.1lf   ",uncertaintyRow.at( i + j * selectionSize));
+	      else fprintf(fp,"%7.0lf   ",uncertaintyRow.at( i + j * selectionSize));
 
 	    }
 
@@ -1005,16 +576,6 @@ int main(int argc, char* argv[]) {
       zlljets_resoResp tree( chain );
       tree.loop(configFileName, isdata_flag, unweighted_event_flag);
 
-    } else if (!(std::strcmp("ana",option.c_str())) ) {
-
-      zlljetsAna_new tree( chain );
-      tree.loop(configFileName, isdata_flag);
-
-    } else if (!(std::strcmp("znunuMC",option.c_str())) ) {
-
-      znunujetsAna tree( chain );
-      tree.loop(configFileName);
-
     } else {
 
       std::cout << "Option '" << option << "' not found. End of programme" << std::endl;
@@ -1026,9 +587,6 @@ int main(int argc, char* argv[]) {
   
   delete chain;
   delete chFriend;
-
-#endif
-
 
   return 0;
 }
