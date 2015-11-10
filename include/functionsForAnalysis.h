@@ -24,6 +24,7 @@ void myDrawOverflow(const TH1D *, const char*, const Int_t);
 TH1D * myOverflowInLastBin(const TH1D *); 
 void myOverflowInLastBin2(TH1D *, const TH1D *); 
 void myAddOverflowInLastBin(TH1D *);
+void myAddUnderflowInFirstBin(TH1D *);
 
 Double_t myRejectionFactor(Int_t, Int_t);
 
@@ -58,10 +59,15 @@ Int_t myGetPartIndex(const Int_t, const Int_t, const Int_t*);
 
 void myPrintYieldsMetBin(const TH1D* histo, const Double_t *metBinEdges, const Int_t nMetBins, const char* YieldsFileName); 
 void myPrintYieldsMetBin(const TH1D* histo, const Double_t *metBinEdges, const Int_t nMetBins); 
-void myPrintYieldsMetBinInStream(ostream &, const TH1D* histo, const Double_t *metBinEdges, const Int_t nMetBins); 
+void myPrintYieldsMetBinInStream(ostream &, const TH1D* histo, const Double_t *metBinEdges, const Int_t nMetBins);
+void myPrintYieldsMetBinInStream(ostream &, const TH1D* histo, const std::vector<Double_t> &); 
 
 void mySumWeight_filler_spring15_25ns(const std::string,  std::vector<Double_t> &);
 
 void myEventsInSubsamples_filler_spring15_25ns(const std::string,  std::vector<Int_t> &);
+
+void mySumWeight_filler_spring15_25ns_2lepSkim(const std::string,  std::vector<Double_t> &);
+
+void myEventsInSubsamples_filler_spring15_25ns_2lepSkim(const std::string,  std::vector<Int_t> &);
 
 #endif
