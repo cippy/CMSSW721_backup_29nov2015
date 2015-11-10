@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <sstream>      // std::istringstream ; to read array of numbers from a line in a file
 #include <string>
 #include <vector>
 #include <iomanip> //for input/output manipulators
@@ -110,6 +111,8 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
      fChain->SetBranchStatus("vtxW",1);   // weight to have better agreement between data and MC
      fChain->SetBranchStatus("xsec",1);   // weight to have better agreement between data and MC
+
+     fChain->SetBranchStatus("vtxWeight",1);   // weight to have better agreement between data and MC (added in tree from 06/10/15)
    }
 
    fChain->SetBranchStatus("met_pt",1);
@@ -160,6 +163,10 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    // Double_t XSEC_OVER_NPROCESSED;
    // Double_t SUMWEIGHTS;
    string FILENAME_BASE;
+   string DIRECTORY_TO_SAVE_FILES;
+   string DIRECTORY_NAME;
+
+   vector<Double_t> metBinEdgesVector;  // filled with values in file named configFileName
 
    ifstream inputFile(configFileName);
 
@@ -229,6 +236,43 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
 	 }
 
+	 if (parameterName == "DIRECTORY_PATH") {  // name of directory where files are saved
+
+	  DIRECTORY_TO_SAVE_FILES = name;
+	  //std::cout << "Files will be saved in '" << name << "' ." <<std::endl;
+
+	} 
+
+	if (parameterName == "DIRECTORY_NAME") {  // name of directory where files are saved
+
+	  DIRECTORY_NAME = name;
+	  //std::cout << "Files will be saved in directory named '" << name << "' ." <<std::endl;
+
+	} 
+
+       } else if (parameterType == "ARRAY_NUM") {
+
+	 inputFile >> parameterName;
+
+	 if (parameterName == "MET_BIN_EDGES") { 
+
+	   cout << right << setw(20) << parameterName << "  ";
+	   string stringvalues;
+	   getline(inputFile, stringvalues);    // read whole line starting from current position (i.e. without reading ARRAY_NUM)
+	   istringstream iss(stringvalues);
+	   Double_t num;
+
+	   while(iss >> num) {
+	    
+	     metBinEdgesVector.push_back(num);
+	     cout << metBinEdgesVector.back() << " ";
+
+	   }
+
+	   cout << endl;
+
+	 }
+
        }
 
      }
@@ -244,27 +288,22 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    }
 
+   string outputFolder =  DIRECTORY_TO_SAVE_FILES + DIRECTORY_NAME + "/";
+
    //Double_t metBinEdges[] = {200., 250., 300., 350., 400., 500., 650., 1000.};
-   Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
-   Int_t nMetBins = (sizeof(metBinEdges)/sizeof(Double_t)) - 1;
+   // Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
+   // Int_t nMetBins = (sizeof(metBinEdges)/sizeof(Double_t)) - 1;
+   Int_t nMetBins = (metBinEdgesVector.size()) - 1;
 
-   // vector<Double_t> metCut;
-   // metCut.push_back(250);
-   // metCut.push_back(300);
-   // metCut.push_back(350);
-   // metCut.push_back(400);
-   // metCut.push_back(500);
-
-   //selection njetsC("njetsC",Form("njets <= %i",NJETS),"pt > 30; |eta| < 4.7");   // using nJet30a
-   //selection njetsEmanC("njetsEmanC","njets","1 or 2 jets, cleaning, pt > 30, |eta| < 2.4");       // using nJet30
-   //selection njetsEmanC("njetsEmanC","njets","1 or 2 jets, cleaning, pt > 30, |eta| < 2.5");       // using nJetClen30
-   //selection jet1ptC("jet1ptC",Form("jet1pt > %4.0lf",(Double_t)J1PT));
-   //selection jet1etaC("jet1etaC",Form("|jet1eta| < %2.1lf",J1ETA));
-   //selection jet2etaC("jet2etaC",Form("|jet2eta| < %2.1lf",J2ETA),Form("only if njets = %i",NJETS));
+   cout << "MetBinEdges: [ ";
+   for(Int_t i = 0; i <= nMetBins; i++) {
+     if (i != nMetBins) cout << metBinEdgesVector[i] << ", ";
+     else cout << metBinEdgesVector[i] << "]" << endl;
+   }
   
    // selections for monojet selection (it also includes veto on muons or electrons depending on the sample
    selection jet1C("jet1C",Form("jet1pt > %4.0lf",(Double_t)J1PT),Form("nJetClean >= 1 && JetClean1_pt > %4.0lf && abs(JetClean1_eta) < %1.1lf && jetclean1 > 0.5",(Double_t)J1PT,J1ETA));
-   selection jjdphiC("jjdphiC",Form("jjdphi < %1.1lf",J1J2DPHI),Form("only if njets = %i",NJETS));
+   selection jjdphiC("jjdphiC",Form("jjdphi < %1.1lf",J1J2DPHI),"only if njets > 1");
    selection njetsC("njets","nJetClean30 <= 2");
    selection gammaLooseVetoC("gammaLooseVetoC","photons veto");
    selection tauLooseVetoC;
@@ -288,16 +327,6 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    selection HLTlepC;
    // the following are only for electrons
    selection lep2tightIdIso04C;
-
-   // TVector3 metNoLepTV3;   // metNoLep 3D vector, TV3 is to make clear that it's a 3D vector and not a TLorentzVector
-   // TVector3 ele; 
-   // ele is any electron to compute MetNoEle, for muons it's not needed because it's already in the tree
-   //TVector3 met, eleVectorSum;
-
-   // the reason to use TVector3 instead of TVector2 (which would be faster) is that I need to compute dphi between metNoLep and the Z vector (TLorentVector).
-   // To do that I use the TVector3::DeltaPhi(const TVector3&) method passing TLorentzVector::Vect() which returns the 3D vector from a Lorentz Vector.
-   // there isn't a method giving just the transverse 2D vector (although I could do it myself) from a TLorentVector (but it does exist a TVector3::XYvector()). 
-   // Maybe I will change because TVector3 is much slower than TVector2
 
    TVector2 metNoLepTV, ele;
 
@@ -325,7 +354,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    Double_t nTotalWeightedEvents = 0.0;     
    //Double_t nEventsAfterMatchRecoGen = 0.0;
-   Int_t HLT_passed_flag = 1;          // some computations (for e) require a trigger preselection, while other don't. The former will be done if the flag is set to 1
+   Int_t HLT_passed_flag = 1;          // some computations (for e) require a trigger preselection, while others don't. The former will be done if the flag is set to 1
                                                        // it's set to 1 because if the trigger selection is not applied every event must be considered to be a "good" event having passed all preselections
                                                        // Actually in this code the trigger is necessary, but I keep it like this nonetheless.
 
@@ -363,8 +392,29 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    if (FILENAME_BASE.find("spring15_25ns") != std::string::npos) {
      using_spring15_25ns_sample_flag = 1;    
      cout << "Using spring15_25ns samples" << endl;
-     mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
-     myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
+   }
+
+   Int_t skim_metNoMu200or2lep_1or2_flag = 0;
+   string checkSkimInConfigFileName(configFileName);
+
+   if (!ISDATA_FLAG) {
+
+     if (checkSkimInConfigFileName.find("metNoMuSkim200") != std::string::npos) {
+
+       skim_metNoMu200or2lep_1or2_flag = 1;    
+       cout << "Using metNoMuSkim200" << endl;
+       mySumWeight_filler_spring15_25ns(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
+       myEventsInSubsamples_filler_spring15_25ns(suffix, eventsInSubsamples); 
+
+     } else if (checkSkimInConfigFileName.find("2lepSkim") != std::string::npos) {
+
+       skim_metNoMu200or2lep_1or2_flag = 2;    
+       cout << "Using 2lepSkim" << endl;
+       mySumWeight_filler_spring15_25ns_2lepSkim(suffix, sumWeightVector);  // this function fills the vector with the proper values of sumWeight depending on the sample
+       myEventsInSubsamples_filler_spring15_25ns_2lepSkim(suffix, eventsInSubsamples); 
+
+     }
+
    }
 
    if ( !ISDATA_FLAG && unweighted_event_flag) cout << "Warning: no weight applied to events (w = 1)" << endl;  // if MC with unit weight, make user know
@@ -400,10 +450,6 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
      //ptr_metNoLepEta = &metNoMu_eta;               // for muons  get this variable from the tree 
      ptr_metNoLepPhi = &metNoMu_phi;         // for muons  get this variable from the tree
 
-     // for (Int_t i = 0; i < metCut.size(); i++) {
-     //   metNoLepC[i].set(Form("metNoMuC[%i]",i),Form("metNoMu > %3.0lf",metCut.at(i)));
-     // }
-
      lepLooseVetoC.set("eLooseVetoC","electrons veto");
      twoLeptonsC.set("twomuonsC","muons");
      twoLepLooseC.set("twomuLooseC","2 loose muons");
@@ -427,10 +473,6 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
      ptr_nLepLoose = &nEle10V;                      // ask 2 electrons
      ptr_nLep10V = &nMu10V;                         // veto on muons   
-
-     // for (Int_t i = 0; i < metCut.size(); i++) {
-     //   metNoLepC[i].set(Form("metNoEleC[%i]",i),Form("metNoEle > %3.0lf",metCut.at(i)));
-     // }
      
      lepLooseVetoC.set("muLooseVetoC","muons veto");
      twoLeptonsC.set("twoelectronsC","electrons");
@@ -458,8 +500,6 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    selection genTauC;
    if (!ISDATA_FLAG && using_ztautaujets_MCsample_flag) genTauC.set("genTauC","taus generated");                       
-   //selection acceptanceC("acceptanceC","acceptance cuts");
-   //selection efficiencyC("efficiencyC","efficiency cuts");
 
    selection::checkMaskLength();
    selection::printActiveSelections(cout); 
@@ -472,14 +512,13 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    UInt_t maskTightTag;   // holds cuts for lepton tight selection, which is different between muons and electrons
 
-   //mask zlljetsControlSample(Form("%s control sample with selection flow as Emanuele's",CONTROL_SAMPLE));
-
    mask zlljetsControlSample(Form("%s control sample (%s gen if DYJetsToLL MC) with selection flow as Emanuele's",CONTROL_SAMPLE,FLAVOUR));
    if (!ISDATA_FLAG) {
      if (using_zlljets_MCsample_flag) zlljetsControlSample.append(genLepC.get2ToId());
      if (using_ztautaujets_MCsample_flag) zlljetsControlSample.append(genTauC.get2ToId());
    }
-   zlljetsControlSample.append(HLTlepC.get2ToId());
+
+   if ( HLT_FLAG ) zlljetsControlSample.append(HLTlepC.get2ToId());
 
    if (METNOLEP_START) zlljetsControlSample.append(metNoLepStartC.get2ToId());
 
@@ -516,11 +555,11 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    if (!ISDATA_FLAG && using_zlljets_MCsample_flag) zlljetsControlSample.append(recoGenLepMatchC.get2ToId());
 
 
-   cout << "Opening file " <<ROOT_FNAME<< endl;
+   cout << "Opening file " <<ROOT_FNAME<< " in folder " << outputFolder << endl;
 
-   TFile *rootFile = new TFile(ROOT_FNAME,"RECREATE");
+   TFile *rootFile = new TFile((outputFolder + ROOT_FNAME).c_str(),"RECREATE");
    if (!rootFile || !rootFile->IsOpen()) {
-     cout<<"Error: file \""<<ROOT_FNAME<<"\" was not opened."<<endl;
+     cout<<"Error: file \""<<outputFolder + ROOT_FNAME<<"\" was not opened."<<endl;
      exit(EXIT_FAILURE);
    }
  
@@ -534,9 +573,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    Float_t invMassBinWidth = 1.0;  // invariant mass histogram's bin width in GeV
    Int_t NinvMassBins = (DILEPMASS_UP - DILEPMASS_LOW) / invMassBinWidth;
 
-   //TH1D *HzlljetsYieldsMetBin = new TH1D("HzlljetsYieldsMetBin",Form("yields of %s control sample in bins of met;#slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
-   TH1D *HzlljetsYieldsMetBin = new TH1D("HYieldsMetBin",Form("yields of %s control sample (%s gen if DY MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdges);
-   //TH1D *HzlljetsYieldsMetBinGenTau = new TH1D("HzlljetsYieldsMetBinGenTau",Form("yields of %s control sample (Z->#tau#tau gen) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE),nMetBins,metBinEdges);
+   TH1D *HzlljetsYieldsMetBin = new TH1D("HYieldsMetBin",Form("yields of %s control sample (%s gen if DY MC) in bins of met; #slash{E}_{T};# of events",CONTROL_SAMPLE,CONTROL_SAMPLE),nMetBins,metBinEdgesVector.data());
    
    TH1D *HinvMass = new TH1D("HinvMass","",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);    // for MC it's done on Z->mumu or Z->ee at gen level
    TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);   
@@ -544,37 +581,23 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    TH1D *Hj1j2dphiDistribution = new TH1D("Hj1j2dphiDistribution","",30,0.0,3.0);
    TH1D *Hjet1etaDistribution = new TH1D("Hjet1etaDistribution","",60,-3.0,3.0);
    TH1D *Hjet2etaDistribution = new TH1D("Hjet2etaDistribution","",60,-3.0,3.0);
-   TH1D *HmetNoLepDistribution;
-   TH1D *HzptDistribution;
-   TH1D *Hjet1ptDistribution;  
-   TH1D *Hjet2ptDistribution;
-
-   //if (using_phys14_sample_flag) {
-     HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",(Int_t)(1000.0-METNOLEP_START)/10.0,METNOLEP_START,1000.0);
-     HzptDistribution = new TH1D("HzptDistribution","",200,0.0,1000.0);
-     Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",97,30,1000); 
-     Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",97,30,1000);
-     //} else if (using_spring15_sample_flag) {
-     // HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
-   //   HzptDistribution = new TH1D("HzptDistribution","",80,0,400);
-   //   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
-   //   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
-   // }
-
-   //TH1D *HinvMass[nMetBins];
+   TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",100,0.0,1000.0);
+   TH1D *HzptDistribution = new TH1D("HzptDistribution","",200,0.0,1000.0);
+   TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",100,0.0,1000.0); 
+   TH1D *Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",100,0.0,1000.0);
+     
    TH1D *HzlljetsInvMassMetBinGenLep[nMetBins];
 
    for (Int_t i = 0; i < nMetBins; i++) {
 
-     //HinvMass[i] = new TH1D(Form("HinvMass_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
-     HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdges[i],metBinEdges[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
+     HzlljetsInvMassMetBinGenLep[i] = new TH1D(Form("HzlljetsInvMassMetBinGenLep_met%2.0lfTo%2.0lf",metBinEdgesVector[i],metBinEdgesVector[i+1]),"",NinvMassBins,DILEPMASS_LOW,DILEPMASS_UP);
 
    } 
 
    // saving histograms with bin edges of other histograms used (e.g. content of metBinEdges array ...)
    TH1D *HmetBinEdges = new TH1D("HmetBinEdges","bin edges for met distributions",nMetBins+1,0.0,nMetBins+1);
    for (Int_t i = 0; i <= nMetBins; i++) {
-     HmetBinEdges->SetBinContent(i+1,metBinEdges[i]);
+     HmetBinEdges->SetBinContent(i+1,metBinEdgesVector[i]);
    }
 
    // deciding  what is the event weight
@@ -619,7 +642,10 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 	   cout << endl;
 	 }
 
-	 newwgt = 1000 * LUMI * xsec * genWeight / SUMWEIGHTS; 
+	 // trees spring15_25ns with skim MetNoMu > 200 don't have vtxWeight (they have vtxW but it should not be used)
+	 // trees spring15_25ns with skim 2 leptons have vtxWeight which helps have same vertices distribution in data and MC
+	 if (skim_metNoMu200or2lep_1or2_flag == 1) newwgt = 1000 * LUMI * xsec * genWeight / SUMWEIGHTS; 
+	 else if (skim_metNoMu200or2lep_1or2_flag == 2) newwgt = 1000 * LUMI * xsec * vtxWeight * genWeight / SUMWEIGHTS; 
 
        } else if (using_spring15_sample_flag && using_spring15_25ns_sample_flag == 0) newwgt = 1000 * LUMI * vtxW  * xsec * genWeight / SUMWEIGHTS;    
        // 1000 is because LUMI is in fb^-1 and xsec is in pb
@@ -701,13 +727,6 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
        }  // end of   if ( HLT_FLAG )
 
-       // metNoLepTV3.SetPtEtaPhi(met_pt,met_eta,met_phi);
-       // // summing just electrons from Z if found
-       // ele.SetPtEtaPhi(LepGood_pt[firstIndex],LepGood_eta[firstIndex],LepGood_phi[firstIndex]);
-       // metNoLepTV3 += ele;
-       // ele.SetPtEtaPhi(LepGood_pt[secondIndex],LepGood_eta[secondIndex],LepGood_phi[secondIndex]);
-       // metNoLepTV3 += ele;
-
        metNoLepTV.SetMagPhi(met_pt,met_phi);
        // summing just electrons from Z if found
        if (recoLepFound_flag) {
@@ -727,16 +746,12 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
      // genLepC added to mask above if ISDATA_FLAG == false (in order not to repeat here the check) 
      
      eventMask += jet1C.addToMask(nJetClean30 >= 1 && JetClean_pt[0] > J1PT && fabs(JetClean_eta[0] < J1ETA && jetclean1 > 0.5));  //could skip cut on eta 
-     eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= NJETS && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
+     eventMask += jjdphiC.addToMask( nJetClean30 == 1 || (nJetClean30 >= 2 && fabs(dphijj) < J1J2DPHI && jetclean2 > 0.5));
      eventMask += njetsC.addToMask(nJetClean30 <= NJETS);
      eventMask += lepLooseVetoC.addToMask(nLep10V == 0);
      eventMask += tauLooseVetoC.addToMask(nTauClean18V == 0);
      eventMask += gammaLooseVetoC.addToMask(nGamma15V == 0);
      eventMask += metNoLepStartC.addToMask(metNoLepPt > METNOLEP_START);
-
-     // for (Int_t i = 0; i <  metCut.size(); i++) {
-     //   eventMask += metNoLepC[i].addToMask(metNoLepPt > metCut[i]);
-     // }
      
      // the following make sense only if recoLepFound_flag == 1 (i.e. flag is true), which means that fabs(LepGood_pdgId[firstIndex/secondIndex]) == LEP_PDG_ID) is 
      // true
@@ -744,9 +759,8 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
      if (recoLepFound_flag) {
 
        eventMask += HLTlepC.addToMask(HLT_passed_flag);     
-       eventMask += oppChargeLeptonsC.addToMask( 1);
+       eventMask += oppChargeLeptonsC.addToMask(1);
        eventMask += twoLeptonsC.addToMask(1);
-       //eventMask += twoLepLooseC.addToMask(nLepLoose > 1.5 && nLepLoose < 2.5);
        eventMask += twoLepLooseC.addToMask(nLepLoose == 2);
        eventMask += lep1ptC.addToMask((LepGood_pt[firstIndex] > LEP1PT)); 
        eventMask += lep1etaC.addToMask( (fabs(LepGood_eta[firstIndex]) < LEP1ETA) );
@@ -817,9 +831,9 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
      // now entering analysis in bins of met
 
-     if ((metNoLepPt > metBinEdges[0]) && (metNoLepPt < metBinEdges[nMetBins])) {
+     if ((metNoLepPt > metBinEdgesVector[0]) && (metNoLepPt < metBinEdgesVector[nMetBins])) {
 
-       Int_t bin = myGetBin(metNoLepPt,metBinEdges,nMetBins);
+       Int_t bin = myGetBin(metNoLepPt,metBinEdgesVector.data(),nMetBins);
        
        // if ((eventMask & zlljetsControlSample.globalMask.back()) == zlljetsControlSample.globalMask.back()) {
        //   // this histogram holds the invariant mass distribution (one for each met bin)
@@ -840,10 +854,11 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
 
    mySpaces(cout,2);
-   myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBin, metBinEdges, nMetBins);
+   myPrintYieldsMetBinInStream(cout, HzlljetsYieldsMetBin, metBinEdgesVector.data(), nMetBins);
  
-   cout<<"creating file '"<<TXT_FNAME<<"' ..."<<endl;
-   ofstream myfile(TXT_FNAME,ios::out);
+   cout<<"creating file '"<<TXT_FNAME<<"' in folder "<< outputFolder <<" ..."<<endl;
+
+   ofstream myfile((outputFolder + TXT_FNAME).c_str(),ios::out);
 
    if ( !myfile.is_open() ) {
 
@@ -853,7 +868,7 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    }
 
    //opening inputFile named configFileName again to save content in myfile named TXT_FNAME
-
+   /*
    inputFile.open(configFileName);
 
    if (inputFile.is_open()) {
@@ -894,11 +909,13 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    }
 
    mySpaces(myfile,2);
+   */
+
    if (!ISDATA_FLAG && unweighted_event_flag) myfile << "======   Using unweighted events (w = 1)   ======" << endl;
    mySpaces(myfile,3);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
    mySpaces(myfile,2);
-   myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBin, metBinEdges, nMetBins);
+   myPrintYieldsMetBinInStream(myfile, HzlljetsYieldsMetBin, metBinEdgesVector.data(), nMetBins);
 
    myfile.close();
 
@@ -927,24 +944,23 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
    selStep.push_back(zlljetsControlSample.whichStepHas(gammaLooseVetoC.get2ToId()));
    if (TAU_VETO_FLAG) selStep.push_back(zlljetsControlSample.whichStepHas(tauLooseVetoC.get2ToId()));
    if (!ISDATA_FLAG && using_zlljets_MCsample_flag)  selStep.push_back(zlljetsControlSample.whichStepHas(recoGenLepMatchC.get2ToId()));
-   else selStep.push_back(-1);
+   else selStep.push_back(selStep.back());  // in this case copy the previous entry
 
    for(Int_t i = 0; i < selStep.size(); i++) {
-
-     if (selStep[i] < 0) {
-       yRow.push_back(-1);
-       eRow.push_back(-1);
-       uncRow.push_back(-1);
-     } else {
-       yRow.push_back(zlljetsControlSample.nEvents[selStep[i]]);
-       uncRow.push_back(sqrt(yRow.back()));
-       if (i == 0) eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/nTotalWeightedEvents);
-       else if( (i != 0) && (zlljetsControlSample.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
-       else eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/zlljetsControlSample.nEvents[selStep[i]-1]);
-     }
-
+     
+     yRow.push_back(zlljetsControlSample.nEvents[selStep[i]]);
+     uncRow.push_back(sqrt(yRow.back()));
+     if (i == 0) eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/nTotalWeightedEvents);
+     else if( (i != 0) && (zlljetsControlSample.nEvents[selStep[i]-1] == 0) ) eRow.push_back(1.0000);
+     else eRow.push_back(zlljetsControlSample.nEvents[selStep[i]]/zlljetsControlSample.nEvents[selStep[i]-1]);
+   
    }
 
+   // fill last bin with overflow 
+   myAddOverflowInLastBin(HmetNoLepDistribution);
+   myAddOverflowInLastBin(HzptDistribution);
+   myAddOverflowInLastBin(Hjet1ptDistribution);
+   myAddOverflowInLastBin(Hjet2ptDistribution);
 
    rootFile->Write();
 
@@ -953,18 +969,16 @@ void zlljetsControlSample::loop(const char* configFileName, const Int_t ISDATA_F
 
    //creating a .tex file to build tables with data
    FILE *fp;
-   fp = fopen(TEX_FNAME,"w");
+   fp = fopen((outputFolder + TEX_FNAME).c_str(),"w");
 
    if ( fp == NULL)  cout<<"Error: '"<<TEX_FNAME<<"' not opened"<<endl;
    else {
 
-     cout<<"creating file '"<<TEX_FNAME<<"' ..."<<endl;
+     cout<<"creating file '"<<TEX_FNAME<<" in folder " << outputFolder << "' ..."<<endl;
      myAddDefaultPackages(fp,TEX_FNAME);
      fprintf(fp,"\\begin{document}\n");
      fprintf(fp,"\n");
-     string commentInTable;       
-     commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
-     makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample,commentInTable);
+     makeTableTex(fp, LUMI, nTotalWeightedEvents, &zlljetsControlSample);
      fprintf(fp,"\\end{document}\n");      
      fclose(fp);
 

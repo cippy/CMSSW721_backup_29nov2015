@@ -8,6 +8,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <sstream>      // std::istringstream ; to read array of numbers from a line in a file
 #include <string>
 #include <vector>
 #include <iomanip> //for input/output manipulators
@@ -144,6 +145,8 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    string DIRECTORY_TO_SAVE_FILES;
    string DIRECTORY_NAME;
 
+   vector<Double_t> metBinEdgesVector;  // filled with values in file named configFileName
+
    ifstream inputFile(configFileName);
 
    if (inputFile.is_open()) {
@@ -200,6 +203,29 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
 	} 
 
+       } else if (parameterType == "ARRAY_NUM") {
+
+	 inputFile >> parameterName;
+
+	 if (parameterName == "MET_BIN_EDGES") { 
+
+	   cout << right << setw(20) << parameterName << "  ";
+	   string stringvalues;
+	   getline(inputFile, stringvalues);    // read whole line starting from current position (i.e. without reading ARRAY_NUM)
+	   istringstream iss(stringvalues);
+	   Double_t num;
+
+	   while(iss >> num) {
+	    
+	     metBinEdgesVector.push_back(num);
+	     cout << metBinEdgesVector.back() << " ";
+
+	   }
+
+	   cout << endl;
+
+	 }
+
        }
 
      }
@@ -218,8 +244,15 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    string outputFolder =  DIRECTORY_TO_SAVE_FILES + DIRECTORY_NAME + "/";
 
    //Double_t metBinEdges[] = {200., 250., 300., 350., 400., 500., 650., 1000.};
-   Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
-   Int_t nMetBins = (sizeof(metBinEdges)/sizeof(Double_t)) - 1;
+   // Double_t metBinEdges[] = {200., 250., 300., 350., 400., 450., 500., 550., 600., 650., 750., 850., 1000.};
+   // Int_t nMetBins = (sizeof(metBinEdges)/sizeof(Double_t)) - 1;
+   Int_t nMetBins = (metBinEdgesVector.size()) - 1;
+
+   cout << "MetBinEdges: [ ";
+   for(Int_t i = 0; i <= nMetBins; i++) {
+     if (i != nMetBins) cout << metBinEdgesVector[i] << ", ";
+     else cout << metBinEdgesVector[i] << "]" << endl;
+   }
 
    // vector<Double_t> metCut;
    // metCut.push_back(250);
@@ -298,11 +331,11 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    if (TAU_VETO_FLAG) monojet_SignalRegion.append(tauLooseVetoC.get2ToId());
    monojet_SignalRegion.append(gammaLooseVetoC.get2ToId());
 
-   cout << "Opening file " <<ROOT_FNAME<< endl;
+   cout << "Opening file " <<ROOT_FNAME<< " in folder " << outputFolder << endl;
 
    TFile *rootFile = new TFile((outputFolder + ROOT_FNAME).c_str(),"RECREATE");
    if (!rootFile || !rootFile->IsOpen()) {
-     cout<<"Error: file \""<<(outputFolder + ROOT_FNAME).c_str()<<"\" was not opened."<<endl;
+     cout<<"Error: file \""<<outputFolder + ROOT_FNAME<<"\" was not opened."<<endl;
      exit(EXIT_FAILURE);
    }
  
@@ -313,31 +346,21 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    //Int_t Hcolor[] = {1,2,3,4,5,6,7,8,9,12,18,30,38,41,42,46,47,49};       
 
-   TH1D *HYieldsMetBin = new TH1D("HYieldsMetBin","monojet signal region's yields in bins of met; #slash{E}_{T};# of events",nMetBins,metBinEdges);
+   TH1D *HYieldsMetBin = new TH1D("HYieldsMetBin","monojet signal region's yields in bins of met; #slash{E}_{T};# of events",nMetBins,metBinEdgesVector.data());
    
    TH1D *HvtxDistribution = new TH1D("HvtxDistribution","",40,-0.5,39.5);   
    TH1D *HnjetsDistribution = new TH1D("HnjetsDistribution","njets using nJetClean30",10,-0.5,9.5);   
    TH1D *Hj1j2dphiDistribution = new TH1D("Hj1j2dphiDistribution","",30,0.0,3.0);
    TH1D *Hjet1etaDistribution = new TH1D("Hjet1etaDistribution","",60,-3.0,3.0);
    TH1D *Hjet2etaDistribution = new TH1D("Hjet2etaDistribution","",60,-3.0,3.0);
-   TH1D *HmetNoLepDistribution;
-   TH1D *Hjet1ptDistribution;  
-   TH1D *Hjet2ptDistribution;
-
-   //if (using_phys14_sample_flag) {
-   HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",100,0.0,1000.0);
-   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",100,0.0,1000.0); 
-   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",100,0.0,1000.0);
-   // } else if (using_spring15_sample_flag) {
-   //   HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",60,METNOLEP_START,METNOLEP_START+600);
-   //   Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",60,J1PT,J1PT+600); 
-   //   Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",60,J2PT,J2PT+600);
-   // }
+   TH1D *HmetNoLepDistribution = new TH1D("HmetNoLepDistribution","",100,0.0,1000.0);
+   TH1D *Hjet1ptDistribution = new TH1D("Hjet1ptDistribution","",100,0.0,1000.0); 
+   TH1D *Hjet2ptDistribution = new TH1D("Hjet2ptDistribution","",100,0.0,1000.0);
 
    // saving histograms with bin edges of other histograms used (e.g. content of metBinEdges array ...)
    TH1D *HmetBinEdges = new TH1D("HmetBinEdges","bin edges for met distributions",nMetBins+1,0.0,nMetBins+1);
    for (Int_t i = 0; i <= nMetBins; i++) {
-     HmetBinEdges->SetBinContent(i+1,metBinEdges[i]);
+     HmetBinEdges->SetBinContent(i+1,metBinEdgesVector[i]);
    }
 
    // deciding  what is the event weight
@@ -443,7 +466,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    selection::printSelectionFlowAndYields(cout, LUMI, nTotalWeightedEvents, &monojet_SignalRegion);
 
    mySpaces(cout,2);
-   myPrintYieldsMetBinInStream(cout, HYieldsMetBin, metBinEdges, nMetBins);
+   myPrintYieldsMetBinInStream(cout, HYieldsMetBin, metBinEdgesVector.data(), nMetBins);
  
    cout<<"creating file '"<<TXT_FNAME<<"' in folder "<< outputFolder <<" ..."<<endl;
    ofstream myfile((outputFolder + TXT_FNAME).c_str(),ios::out);
@@ -457,6 +480,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
 
    //opening inputFile named configFileName again to save content in myfile named TXT_FNAME
 
+   /*
    inputFile.open(configFileName);
 
    if (inputFile.is_open()) {
@@ -497,11 +521,13 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
    }
 
    mySpaces(myfile,2);
+   */
+
    if (!ISDATA_FLAG && unweighted_event_flag) myfile << "======   Using unweighted events (w = 1)   ======" << endl;
    mySpaces(myfile,3);
    selection::printSelectionFlowAndYields(myfile, LUMI, nTotalWeightedEvents, &monojet_SignalRegion);
    mySpaces(myfile,2);
-   myPrintYieldsMetBinInStream(myfile, HYieldsMetBin, metBinEdges, nMetBins);
+   myPrintYieldsMetBinInStream(myfile, HYieldsMetBin, metBinEdgesVector.data(), nMetBins);
 
    myfile.close();
 
@@ -554,9 +580,7 @@ void monojet_SignalRegion::loop(const char* configFileName, const Int_t ISDATA_F
      myAddDefaultPackages(fp,TEX_FNAME);
      fprintf(fp,"\\begin{document}\n");
      fprintf(fp,"\n");
-     string commentInTable;       
-     commentInTable = "Note that cuts on second jet are applied only if a second jet exists with $p_t$ > 30\\,GeV.";
-     makeTableTex(fp, LUMI, nTotalWeightedEvents, &monojet_SignalRegion,commentInTable);
+     makeTableTex(fp, LUMI, nTotalWeightedEvents, &monojet_SignalRegion);
      fprintf(fp,"\\end{document}\n");      
      fclose(fp);
 
