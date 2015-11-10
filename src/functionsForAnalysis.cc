@@ -308,6 +308,22 @@ void myAddOverflowInLastBin(TH1D *h) {
 
 }
 
+void myAddUnderflowInFirstBin(TH1D *h) {
+
+  // to avoid problems regarding memory leak for not deleting htemp in previous function, I sum directly the content of overflow bin in last bin
+
+  // Int_t underflowBinNumber = 0;
+  Double_t firstBinContent = h->GetBinContent(1);
+  Double_t underflowBinContent = h->GetBinContent(0);
+  Double_t firstBinError = h->GetBinError(1);
+  Double_t underflowBinError = h->GetBinError(0);
+
+  // add content of underflow bin in first bin and set error as square root of sum of error squares (with the assumption that they are uncorrelated)
+  h->SetBinContent(1, firstBinContent + underflowBinContent);
+  h->SetBinError(1, sqrt(firstBinError * firstBinError + underflowBinError * underflowBinError));
+
+}
+
 //calculation of rejection factors
 Double_t myRejectionFactor(Int_t selected, Int_t total) {
  
@@ -941,12 +957,31 @@ void myPrintYieldsMetBinInStream(ostream & myOutStream, const TH1D* histo, const
 }
 
 
+void myPrintYieldsMetBinInStream(ostream & myOutStream, const TH1D* histo, const std::vector<Double_t> &metBinEdges) {
+ 
+  Int_t nMetBins = metBinEdges.size() - 1; // -1 because metBinEdges has the lower edges of the histogram bins, so that metBinEdges = {0,10,20,30} is to be interpreted as 3 bins from 0 to 30 (values > 30 fill the overflow bin)
+
+  myOutStream<<histo->GetName()<<" : yields in met bin"<<endl;
+  myOutStream<<"#bin   yield   MC uncertainty     sqrt(yield)"<<endl;
+  myOutStream<<"<"<<(Int_t)metBinEdges[0]<<" ";
+  myOutStream<<histo->GetBinContent(0)<<" "<<histo->GetBinError(0)<<" "<<sqrt(histo->GetBinContent(0))<<endl;
+  for (Int_t i = 0; i < nMetBins; i++ ) {  //from underflow to overflow bin 
+    myOutStream<<(Int_t)metBinEdges[i]<<"-"<<(Int_t)metBinEdges[i+1]<<" ";
+    myOutStream<<histo->GetBinContent(i+1)<<" "<<histo->GetBinError(i+1)<<" "<<sqrt(histo->GetBinContent(i+1))<<endl;
+  }
+  myOutStream<<">"<<(Int_t)metBinEdges[nMetBins]<<" ";
+  myOutStream<<histo->GetBinContent(nMetBins + 1)<<" "<<histo->GetBinError(nMetBins + 1)<<" "<<sqrt(histo->GetBinContent(nMetBins + 1))<<endl;
+
+}
+
+
 void mySumWeight_filler_spring15_25ns(const std::string suffix,  std::vector<Double_t> & sumWeightVector) {
 
   // fill vector with sumWeight for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
   // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+  // trees with skim on metNoMu > 200
 
-  if (suffix.find("DYJetsToLL_M50") != std::string::npos) {
+  if (suffix.find("DYJetsToLL") != std::string::npos) {
      sumWeightVector.push_back(2625679.0);
      sumWeightVector.push_back(955972.0);
      sumWeightVector.push_back(1048047.0);
@@ -1001,8 +1036,9 @@ void myEventsInSubsamples_filler_spring15_25ns(const std::string suffix,  std::v
 
   // fill vector with number of events for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
   // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+  // trees with skim on metNoMu > 200
 
-  if (suffix.find("DYJetsToLL_M50") != std::string::npos) {
+  if (suffix.find("DYJetsToLL") != std::string::npos) {
      eventsInSubsamples.push_back(5534);
      eventsInSubsamples.push_back(44507);
      eventsInSubsamples.push_back(98826);
@@ -1048,6 +1084,76 @@ void myEventsInSubsamples_filler_spring15_25ns(const std::string suffix,  std::v
      eventsInSubsamples.push_back(36070);
      eventsInSubsamples.push_back(9497);
      eventsInSubsamples.push_back(9690);
+   }
+
+}
+
+
+void mySumWeight_filler_spring15_25ns_2lepSkim(const std::string suffix,  std::vector<Double_t> & sumWeightVector) {
+
+  // fill vector with sumWeight for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
+  // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+  // trees with skim on 2 leptons
+
+  if (suffix.find("DYJetsToLL") != std::string::npos) {
+     sumWeightVector.push_back(4.52712069254e+11);
+   }
+
+   if (suffix.find("WJetsToLNu") != std::string::npos) {  // binning 100-200-400-600-800-1200 (I don't have friend for other bins)
+     sumWeightVector.push_back(9571170.0);
+     sumWeightVector.push_back(5231856.0);
+     sumWeightVector.push_back(1901705.0);
+     sumWeightVector.push_back(3984529.0);
+     sumWeightVector.push_back(1574633.0);
+   }
+
+   if (suffix.find("Top") != std::string::npos) { // all samples available (TToLeptons_sch missing)
+     sumWeightVector.push_back(1000000.0);
+     sumWeightVector.push_back(89002380545.3);
+     sumWeightVector.push_back(4972773.0);
+     sumWeightVector.push_back(1336800136.23);
+     sumWeightVector.push_back(995600.0);
+   }
+
+   if (suffix.find("Diboson") != std::string::npos) {  // WW, WZ, ZZ
+     sumWeightVector.push_back(1930000.0);
+     sumWeightVector.push_back(991232.0);
+     sumWeightVector.push_back(996168.0);
+   }
+
+}
+ 
+
+void myEventsInSubsamples_filler_spring15_25ns_2lepSkim(const std::string suffix,  std::vector<Int_t> & eventsInSubsamples) {
+
+  // fill vector with number of events for samples used in spring15 at 25 ns. The problem was that, for a given sample,  each HT bin had a different value of sumWeight. Now, since I had to
+  // merge these bins to run the analysis, I had to keep track of all these values and use the proper value when the i-th bin is being analyzed in the code 
+  // trees with skim on 2 leptons
+
+  if (suffix.find("DYJetsToLL") != std::string::npos) {
+     eventsInSubsamples.push_back(7770587);  
+   }
+
+   if (suffix.find("WJetsToLNu") != std::string::npos) {  // binning 100-200-400-600-800-1200 (I don't have friend for other bins)
+     eventsInSubsamples.push_back(43651);
+     eventsInSubsamples.push_back(34688);
+     eventsInSubsamples.push_back(15648);
+     eventsInSubsamples.push_back(35130); 
+     eventsInSubsamples.push_back(13870); 
+   }
+
+   if (suffix.find("Top") != std::string::npos) { // all samples available (TToLeptons_sch missing)
+     eventsInSubsamples.push_back(50771);
+     eventsInSubsamples.push_back(2295837);
+     eventsInSubsamples.push_back(1864475);
+     eventsInSubsamples.push_back(359116); 
+     eventsInSubsamples.push_back(50671); 
+   }
+
+   if (suffix.find("Diboson") != std::string::npos) {  // WW, WZ, ZZ
+     eventsInSubsamples.push_back(515306);
+     eventsInSubsamples.push_back(43528);
+     eventsInSubsamples.push_back(74472);   
    }
 
 }
