@@ -53,12 +53,14 @@ int main(int argc, char* argv[]) {
   Int_t adishTree_flag = 0;  // tells user I'm using Adish's tree
 
   // following are for CS analysis
-  Int_t controlSample_flag = 0;
   Int_t signalRegion_flag = 0;
+  Int_t controlSample_flag = 0;
+  Int_t metResolutionAndResponse_flag = 0;
   string fileWithSamplesPath = "";
   string filename_base = "";
   string directory_to_save_files = "";
   string directory_name = "";
+  string outputFolder = "./"; // current directory by default, but it could be set as 'directory_to_save_files + directory_name'
 
   if (argc > 2 ) {
 
@@ -165,23 +167,32 @@ int main(int argc, char* argv[]) {
 
 	} 
 
-	if (parameterName == "PATH_TO_SAMPLES_4CS") {  // path to file with CS samples and some options
-
-	  controlSample_flag = 1;
-	  fileWithSamplesPath = name;
-	  std::cout << "Performing analysis on control samples." <<std::endl;
-	  std::cout << setw(20) << "File pointing to CS samples: " << fileWithSamplesPath<<std::endl;
-
-	} 
-
 	if (parameterName == "PATH_TO_SAMPLES_4SR") {  // path to file with CS samples and some options
 
 	  signalRegion_flag = 1;
 	  fileWithSamplesPath = name;
 	  std::cout << "Performing analysis on signal region." <<std::endl;
-	  std::cout << setw(20) << "File pointing to SR samples: " << fileWithSamplesPath<<std::endl;
+	  std::cout << setw(20) << "File pointing to samples: " << fileWithSamplesPath<<std::endl;
 
 	} 
+
+	if (parameterName == "PATH_TO_SAMPLES_4CS") {  // path to file with CS samples and some options
+
+	  controlSample_flag = 1;
+	  fileWithSamplesPath = name;
+	  std::cout << "Performing analysis on control samples." <<std::endl;
+	  std::cout << setw(20) << "File pointing to samples: " << fileWithSamplesPath<<std::endl;
+
+	} 
+
+	if (parameterName == "PATH_TO_SAMPLES_4MET_RESO_RESP") {  // path to file with CS samples and some options
+
+	  metResolutionAndResponse_flag = 1;
+	  fileWithSamplesPath = name;
+	  std::cout << "Performing MET resolution and response analysis." <<std::endl;
+	  std::cout << setw(20) << "File pointing to samples: " << fileWithSamplesPath<<std::endl;
+
+	} 	
 
 	if (parameterName == "DIRECTORY_PATH") {  // name of directory where files are saved
 
@@ -216,7 +227,7 @@ int main(int argc, char* argv[]) {
 
     struct stat st = {0};
 
-    string outputFolder = directory_to_save_files + directory_name;
+    outputFolder = directory_to_save_files + directory_name + "/";
     std::cout << "Creating new directory " << outputFolder << " ... " << std::endl;
 
     if (stat(outputFolder.c_str(), &st) == -1) {
@@ -233,104 +244,83 @@ int main(int argc, char* argv[]) {
     // ================== saving content of config file in "report.txt" =====
 
     string reportFileName = "report.txt";
-    ofstream reportFile((outputFolder + "/" + reportFileName).c_str(),ios::out);
+    ofstream reportFile((outputFolder + reportFileName).c_str(),ios::out);
 
     if ( !reportFile.is_open() ) {
 
       cout<<"Error: unable to open file " << reportFileName <<" !"<<endl;
       exit(EXIT_FAILURE);
      
-    }
-
-    //opening inputFile named configFileName again to save content in file named "report.txt"
-
-    inputFile.open(configFileName);
-
-    if (inputFile.is_open()) {
-     
-      cout << "Saving content of " << configFileName << " file in "<< reportFileName << " located in " << outputFolder << endl;
-      reportFile << "Content of " << configFileName << endl;
-      reportFile << endl;
-
-      Double_t value;
-      string name;
-      string parameterName;
-      string parameterType;
-
-      while (inputFile >> parameterType ) {
-
-	if (parameterType == "NUMBER") {
-
-	  inputFile >> parameterName >> value;
-	  reportFile << right << setw(20) << parameterName << "  " << left << value << endl;
-
-	} else if (parameterType == "STRING") {
-	 
-	  inputFile >> parameterName >> name;
-	  reportFile << right << setw(20) << parameterName << "  " << left << name << endl;
-
-	}
-
-      }
-     
-      inputFile.close();
-        
-      reportFile << endl;
-      reportFile << endl;
-                                                                                                             
     } else {
-
-      cout << "Error: could not open file " << configFileName << " to save content in "<< reportFileName << endl;
-      exit(EXIT_FAILURE);
-
-    }
-
-    //now also opening inputFile named fileWithSamplesPath to save content in file named "report.txt"
-
-    inputFile.open(fileWithSamplesPath.c_str());
-
-    if (inputFile.is_open()) {
-
-      cout << "Saving content of " << fileWithSamplesPath << " file in "<< reportFileName << " located in " << outputFolder << endl;
-      reportFile << "Content of " << fileWithSamplesPath << endl;
-      reportFile << endl;
 
       string str;
 
-      while (getline(inputFile,str)) {
+      inputFile.open(configFileName); //opening inputFile named configFileName again to save content in file named "report.txt"
 
-	reportFile << str << endl;
+      if (inputFile.is_open()) {
+     
+	cout << "Saving content of " << configFileName << " file in "<< reportFileName << " located in " << outputFolder << endl;
+	reportFile << "Content of " << configFileName << endl;
+	reportFile << endl;
+
+	while (getline(inputFile,str)) {
+
+	  reportFile << str << endl;
+
+	}
+     
+	inputFile.close();
+        
+	reportFile << endl;
+	reportFile << endl;
+                                                                                                             
+      } else {
+
+	cout << "Error: could not open file " << configFileName << " to save content in "<< reportFileName << endl;
+	exit(EXIT_FAILURE);
 
       }
 
-      inputFile.close();
-  
-    } else {
+      //now also opening inputFile named fileWithSamplesPath to save content in file named "report.txt"
 
-      cout << "Error: could not open file " << fileWithSamplesPath << " to save content in "<< reportFileName << endl;
-      exit(EXIT_FAILURE);
+      inputFile.open(fileWithSamplesPath.c_str());
+
+      if (inputFile.is_open()) {
+
+	cout << "Saving content of " << fileWithSamplesPath << " file in "<< reportFileName << " located in " << outputFolder << endl;
+	reportFile << "Content of " << fileWithSamplesPath << endl;
+	reportFile << endl;
+
+	while (getline(inputFile,str)) {
+
+	  reportFile << str << endl;
+
+	}
+
+	inputFile.close();
+  
+      } else {
+
+	cout << "Error: could not open file " << fileWithSamplesPath << " to save content in "<< reportFileName << endl;
+	exit(EXIT_FAILURE);
+
+      }
+
+      reportFile.close();
 
     }
-
-    reportFile.close();
 
   }
 
   // ==================================================
 
-  if (controlSample_flag == 1 || signalRegion_flag == 1) {
-
-    // char buffer1[200];
-    // char buffer2[200];
-    // char rootFileToChain[500];
-    // char rootFriendFileToChain[500];
+  if (signalRegion_flag == 1 || controlSample_flag == 1 || metResolutionAndResponse_flag == 1 ) {
 
     Double_t value;
     string name;
     string parameterName;
     string parameterType;
 
-    //vector< vector<Double_t> > matrix;
     vector< Double_t > yieldsRow;
     vector< Double_t > efficiencyRow;
     vector< Double_t > uncertaintyRow;
@@ -352,6 +342,25 @@ int main(int argc, char* argv[]) {
       selectionDefinition.push_back("photon veto");
 
     } else if (controlSample_flag == 1) {
+
+      selectionDefinition.push_back("entry point");        
+      selectionDefinition.push_back("preselection");   // include genLep, HLT, MetNoLep
+      selectionDefinition.push_back("2lep SF/OS");
+      selectionDefinition.push_back("2lep loose");
+      if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("muons");
+      else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("electrons");
+      selectionDefinition.push_back("tight Tag");
+      selectionDefinition.push_back("mll");
+      selectionDefinition.push_back("jet1pt");
+      selectionDefinition.push_back("jetjetdphi");
+      selectionDefinition.push_back("njets");
+      if (fabs(lepton_PDGID) == 13) selectionDefinition.push_back("electron veto");
+      else if (fabs(lepton_PDGID) == 11) selectionDefinition.push_back("muon veto");
+      selectionDefinition.push_back("photon veto");
+      if (tau_veto_flag) selectionDefinition.push_back("tau veto");
+      selectionDefinition.push_back("lep match");
+
+    } else if (metResolutionAndResponse_flag == 1) {
 
       selectionDefinition.push_back("entry point");        
       selectionDefinition.push_back("preselection");   // include genLep, HLT, MetNoLep
@@ -456,6 +465,11 @@ int main(int argc, char* argv[]) {
 	    zlljetsControlSample tree( chain , sampleName[nSample].c_str());
 	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow, uncertaintyRow); 
 
+	  } else if (metResolutionAndResponse_flag == 1) {
+
+	    zlljets_metResoResp tree( chain , sampleName[nSample].c_str());
+	    tree.loop(configFileName, isdata_flag, unweighted_event_flag, yieldsRow, efficiencyRow, uncertaintyRow); 
+
 	  }
 
 	  cout << endl;   cout << endl;
@@ -552,13 +566,13 @@ int main(int argc, char* argv[]) {
     if (unweighted_event_flag) finalFileName += "_weq1";   //means with weights equal to 1 (for debugging purposes)
     finalFileName += ".dat";
 
-    if ( (fp=fopen((directory_to_save_files + directory_name + "/" + finalFileName).c_str(),"w")) == NULL) {
+    if ( (fp=fopen((outputFolder + finalFileName).c_str(),"w")) == NULL) {
 
       cout<<"Error: '"<<finalFileName<<"' not opened"<<endl;
 
     } else {
 
-      cout<<"creating file '"<<finalFileName<<"' to save table with yields in folder " << (directory_to_save_files + directory_name + "/").c_str() << " ..."<<endl;
+      cout<<"creating file '"<<finalFileName<<"' to save table with yields in folder " << outputFolder << " ..."<<endl;
       fprintf(fp,"#    step         ");
 
       for(Int_t i = 0; i <= nSample; i++) {
@@ -624,7 +638,7 @@ int main(int argc, char* argv[]) {
 
     return 0;
 
-  }  //end of  "if (controlSample_flag == 1 || signalRegion_flag == 1)"
+  }  //end of  "if (controlSample_flag == 1 || signalRegion_flag == 1 || ...)"
 
 
   //if (!isdata_flag && unweighted_event_flag) std::cout << "Using unweighted events (w = 1) " << std::endl;
