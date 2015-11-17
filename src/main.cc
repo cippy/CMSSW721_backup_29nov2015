@@ -333,9 +333,10 @@ int main(int argc, char* argv[]) {
     
       selectionDefinition.push_back("entry point");  
       selectionDefinition.push_back("preselection");  // include metNoMu (only that for now)
+      selectionDefinition.push_back("bjet veto");
       selectionDefinition.push_back("jet1pt");
-      selectionDefinition.push_back("jetjetdphi");
-      selectionDefinition.push_back("njets");
+      selectionDefinition.push_back("dphiMin(j,Met)");
+      selectionDefinition.push_back("jet1 cleaning");
       selectionDefinition.push_back("muon veto");
       selectionDefinition.push_back("electron veto");
       if (tau_veto_flag) selectionDefinition.push_back("tau veto");
